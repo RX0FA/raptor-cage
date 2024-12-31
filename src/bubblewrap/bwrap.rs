@@ -71,7 +71,7 @@ impl FromStr for NetworkMode {
 pub enum DeviceAccess {
   /// Allow access to all devices.
   All,
-  /// Minimal set of input and GPU devices for games to work,
+  /// Minimal set of input and GPU devices for games to work.
   Minimal,
 }
 
@@ -128,7 +128,7 @@ pub struct RuntimeEnv {
   pub display_address: String,
   /// Needed on X11 sessions, and by Gamescope.
   pub xauthority_file: String,
-  /// Additional env variables set (e.g. set by the user ot Bottles).
+  /// Additional env variables set (e.g. set by the user or Bottles).
   pub overrides: Option<HashMap<String, String>>,
 }
 
@@ -348,7 +348,7 @@ fn build_args(
   // While --dir itself doesn't inherently leak data from the host, it provides less protection
   // because it allows the container to manage files on a persistent basis (even if those files are
   // contained within the sandbox), in other words, it has greater attack surface in case a
-  // vulnerability is Bubblewrap is found. In contrast, --tmpfs ensures a clean and isolated
+  // vulnerability in Bubblewrap is found. In contrast, --tmpfs ensures a clean and isolated
   // environment with no chance of interaction with the host filesystem.
   args.extend([
     "--tmpfs",

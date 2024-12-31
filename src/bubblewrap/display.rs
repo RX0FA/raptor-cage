@@ -78,7 +78,7 @@ mod tests {
   #[test]
   fn test_valid_display_with_hostname() {
     let display_str = "localhost:0.0";
-    let display = Display::from_str(display_str).expect("Failed to parse display");
+    let display = Display::from_str(display_str).expect("failed to parse display");
     assert_eq!(display.hostname, Some("localhost".to_string()));
     assert_eq!(display.display_number, 0);
     assert_eq!(display.screen_number, Some(0));
@@ -88,7 +88,7 @@ mod tests {
   #[test]
   fn test_valid_display_without_hostname() {
     let display_str = ":1.2";
-    let display = Display::from_str(display_str).expect("Failed to parse display");
+    let display = Display::from_str(display_str).expect("failed to parse display");
     assert_eq!(display.hostname, None);
     assert_eq!(display.display_number, 1);
     assert_eq!(display.screen_number, Some(2));
@@ -98,7 +98,7 @@ mod tests {
   #[test]
   fn test_display_without_screen_number() {
     let display_str = ":2";
-    let display = Display::from_str(display_str).expect("Failed to parse display");
+    let display = Display::from_str(display_str).expect("failed to parse display");
     assert_eq!(display.hostname, None);
     assert_eq!(display.display_number, 2);
     assert_eq!(display.screen_number, None);
