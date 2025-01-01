@@ -20,7 +20,7 @@ the Project, including any modifications or future versions.
 
 3. No Warranty.
 
-Your Contribution is provided "as-is," without warranty, and the Project has no
+Your Contribution is provided "as-is", without warranty, and the Project has no
 obligation to use or incorporate it.
 
 4. Representations and Warranties.

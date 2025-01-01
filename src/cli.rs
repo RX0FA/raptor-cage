@@ -4,7 +4,6 @@ use crate::bubblewrap::{
   wine::{SyncMode, UpscaleMode},
 };
 use clap::{ArgAction, Parser};
-use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 pub enum Commands {
@@ -53,14 +52,6 @@ pub enum Commands {
     /// Optional game arguments, need to be placed after a double dash.
     app_args: Option<Vec<String>>,
   },
-  // TODO: List available runner versions.
-  // List {},
-  // TODO: Download the specified runner version.
-  // #[command(arg_required_else_help = true)]
-  // Download {},
-  // TODO: Download and install a dependency into the specified prefix.
-  // #[command(arg_required_else_help = true)]
-  // Get {},
 }
 
 #[derive(Debug, Parser)]

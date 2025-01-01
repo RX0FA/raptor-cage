@@ -1,11 +1,6 @@
-mod bottles;
 mod bubblewrap;
 mod cli;
-mod info;
-mod installer;
 mod invoker;
-mod manifest;
-mod sevenz;
 
 use clap::Parser;
 use cli::{Cli, Commands};
