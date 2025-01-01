@@ -1,0 +1,62 @@
+name: Check if CLA was accepted
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+
+env:
+  CHECKBOX_TEXT: "I have read the CLA and accept it's terms"
+
+jobs:
+  check-pr-description:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Get checkbox line
+      id: get_checkbox_line
+      run: |
+        # The description body can be multiline which is extra annoying to deal with, only get the desired line.
+        CHECKBOX_LINE=$(jq --raw-output .pull_request.body $GITHUB_EVENT_PATH | grep -- "${{ env.CHECKBOX_TEXT }}" | head -n 1)
+        # Save output for further usage.
+        echo "checkbox_line=$CHECKBOX_LINE" | tee -a $GITHUB_OUTPUT
+
+    - name: Check if checkbox is checked
+      id: validate_checkbox_text
+      run: |
+        EXPECTED_CHECKBOX_TEXT="[x] ${{ env.CHECKBOX_TEXT }}"
+        CHECKBOX_LINE="${{ steps.get_checkbox_line.outputs.checkbox_line }}"
+        if [[ "$CHECKBOX_LINE" == *"$EXPECTED_CHECKBOX_TEXT"* ]]; then
+          echo "Checkbox is checked"
+          echo "checkbox_is_checked=true" >> $GITHUB_OUTPUT
+        else
+          echo "Checkbox is not checked"
+          echo "checkbox_is_checked=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Post comment if checkbox is not checked
+      if: steps.validate_checkbox_text.outputs.checkbox_is_checked == 'false'
+      uses: mshick/add-pr-comment@v2
+      with:
+        allow-repeats: true
+        message: |
+          🔴 It looks like you haven't checked the "${{ env.CHECKBOX_TEXT }}" checkbox in the PR description. Please make sure to check it before proceeding. Thanks!.
+
+    - name: Fail if checkbox is not checked
+      if: steps.validate_checkbox_text.outputs.checkbox_is_checked == 'false'
+      run: |
+        exit 1
+
+    - name: Post comment if checkbox is checked
+      if: steps.validate_checkbox_text.outputs.checkbox_is_checked == 'true'
+      uses: mshick/add-pr-comment@v2
+      with:
+        allow-repeats: true
+        message: |
+          ✅ Thank you for your contribution, if you think there is an error with this automation please leave a message or withdraw your changes.

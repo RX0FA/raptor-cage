@@ -57,7 +57,7 @@ cargo upgrade --dry-run
 * Normal binary release.
 * cURL install script.
 * Create deb package.
-* Make a reusable lib version.
+* Make a reusable lib version (`Cargo.lock` needs to be ignored, see https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html).
 
 #### Maybe
 
