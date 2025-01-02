@@ -1,5 +1,5 @@
 use crate::bubblewrap::{
-  bwrap::{DeviceAccess, NetworkMode},
+  sandbox::{DeviceAccess, NetworkMode},
   user_mapping::UserMapping,
   wine::{SyncMode, UpscaleMode},
 };
