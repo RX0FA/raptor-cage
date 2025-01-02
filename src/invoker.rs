@@ -1,5 +1,6 @@
 use crate::bubblewrap::{
-  bwrap::{self, DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
+  bwrap,
+  sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
   user_mapping::UserMapping,
   wine::{SyncMode, UpscaleMode},
 };

@@ -38,7 +38,7 @@ cargo audit
 cargo upgrade --dry-run
 ```
 
-### TODO
+### TODOs
 
 #### General
 
@@ -49,6 +49,7 @@ cargo upgrade --dry-run
 * Add `integrate` sub-command to create integrations e.g., `.desktop` shortcut, entry on Heroic launcher.
 * Add `list` sub-command to list Bottles' runners and prefixes.
 * Wayland support, see https://www.phoronix.com/news/Wine-9.22-Released and https://wiki.archlinux.org/title/Wine#Wayland.
+* Add `kill` sub-command to terminate all processes in a sandbox, need to connect to existing bwrap container.
 
 #### Packaging
 
@@ -62,4 +63,4 @@ cargo upgrade --dry-run
 #### Maybe
 
 * Simple GUI delivered as Flatpak that builds the needed commands based on the selected options, and creates `.desktop` shortcuts.
-* Investigate a way to use `--new-session` while allowing the user to read the output, without relying on seccomp, probably an easy fix could be to create an HTTP where the output can be seen.
+* Investigate a way to use `--new-session` while allowing the user to read the output, without relying on seccomp, probably an easy fix could be to create an HTTP server where the output can be seen.
