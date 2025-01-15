@@ -338,13 +338,8 @@ fn build_args(
   // each element), however args still needs to be converted to Vec<String> at the end.
   let mut final_args: Vec<String> = args.into_iter().map(String::from).collect();
   let term = env::var("TERM").unwrap_or("xterm-256color".into());
-  let shell_params: Vec<String> = vec![
-    "--setenv".into(),
-    "TERM".into(),
-    term,
-    // TODO: get default shell.
-    "bash".into(),
-  ];
+  let shell = env::var("SHELL").unwrap_or("bash".into());
+  let shell_params: Vec<String> = vec!["--setenv".into(), "TERM".into(), term, shell];
   // Depending on the launch params, add the necessary arguments to start a regular shell or execute
   // a command under wine.
   match &launch_config.launch_params {

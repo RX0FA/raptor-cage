@@ -1,6 +1,8 @@
+mod bottles;
 mod bubblewrap;
 mod cli;
 mod invoker;
+mod list;
 
 use clap::Parser;
 use cli::{Cli, Commands};
@@ -39,5 +41,6 @@ fn main() -> anyhow::Result<()> {
       app_bin,
       app_args,
     ),
+    Commands::List { category } => list::list(category),
   }
 }

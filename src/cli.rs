@@ -1,7 +1,10 @@
-use crate::bubblewrap::{
-  sandbox::{DeviceAccess, NetworkMode},
-  user_mapping::UserMapping,
-  wine::{SyncMode, UpscaleMode},
+use crate::{
+  bubblewrap::{
+    sandbox::{DeviceAccess, NetworkMode},
+    user_mapping::UserMapping,
+    wine::{SyncMode, UpscaleMode},
+  },
+  list::Category,
 };
 use clap::{ArgAction, Parser};
 
@@ -44,13 +47,18 @@ pub enum Commands {
     #[arg(short = 'w', long = "writable", default_value = "false")]
     read_write: bool,
     /// Path that contains the application files.
-    #[arg(short, long = "appdir", value_name = "PATH")]
+    #[arg(short = 'd', long = "appdir", value_name = "PATH")]
     app_dir: Option<String>,
     /// Path of the executable file relative to appdir.
     #[arg(short = 'b', long = "appbin", value_name = "BIN")]
     app_bin: Option<String>,
     /// Optional game arguments, need to be placed after a double dash.
     app_args: Option<Vec<String>>,
+  },
+  /// List installed runners and prefixes.
+  List {
+    #[arg(long, value_name = "CATEGORY", default_value = "all", value_parser)]
+    category: Category,
   },
 }
 

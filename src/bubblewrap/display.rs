@@ -1,5 +1,4 @@
 use anyhow::Context;
-use std::env;
 
 /// Represents a value as used by the DISPLAY environment variable.
 /// The format is: `hostname:display_number.screen_number`.
@@ -48,26 +47,10 @@ impl Display {
     })
   }
 
-  pub fn from_env() -> anyhow::Result<Self> {
-    match env::var("DISPLAY") {
-      Ok(display) => Self::from_str(&display),
-      Err(_) => anyhow::bail!("DISPLAY environment variable is not set"),
-    }
-  }
-
   /// Calculate the X11 socket path based on the display number. The display number is usually `0`
   /// when running under X11, and `1` when running under Wayland.
   pub fn get_socket_path(&self) -> String {
     format!("/tmp/.X11-unix/X{}", self.display_number)
-  }
-
-  pub fn to_display_address(&self) -> String {
-    let hostname = self.hostname.as_deref().unwrap_or("");
-    let screen_part = match self.screen_number {
-      Some(screen) => format!(".{}", screen),
-      None => String::new(),
-    };
-    format!("{}:{}{}", hostname, self.display_number, screen_part)
   }
 }
 
@@ -127,13 +110,6 @@ mod tests {
   }
 
   #[test]
-  fn test_no_display_variable() {
-    env::remove_var("DISPLAY");
-    let result = Display::from_env();
-    assert!(result.is_err());
-  }
-
-  #[test]
   fn test_parse_local_display() {
     let display_str = ":0.0";
     let expected = Display {
@@ -175,45 +151,5 @@ mod tests {
       screen_number: Some(0),
     };
     assert_eq!(display.get_socket_path(), "/tmp/.X11-unix/X1");
-  }
-
-  #[test]
-  fn test_with_hostname_and_screen() {
-    let display = Display {
-      hostname: Some("localhost".to_string()),
-      display_number: 0,
-      screen_number: Some(0),
-    };
-    assert_eq!(display.to_display_address(), "localhost:0.0");
-  }
-
-  #[test]
-  fn test_with_hostname_without_screen() {
-    let display = Display {
-      hostname: Some("localhost".to_string()),
-      display_number: 1,
-      screen_number: None,
-    };
-    assert_eq!(display.to_display_address(), "localhost:1");
-  }
-
-  #[test]
-  fn test_without_hostname_with_screen() {
-    let display = Display {
-      hostname: None,
-      display_number: 2,
-      screen_number: Some(1),
-    };
-    assert_eq!(display.to_display_address(), ":2.1");
-  }
-
-  #[test]
-  fn test_without_hostname_and_screen() {
-    let display = Display {
-      hostname: None,
-      display_number: 3,
-      screen_number: None,
-    };
-    assert_eq!(display.to_display_address(), ":3");
   }
 }
