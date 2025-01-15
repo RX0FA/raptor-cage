@@ -1,10 +1,10 @@
 use crate::{
-  bubblewrap::{
+  list::Category,
+  sandbox::{
     sandbox::{DeviceAccess, NetworkMode},
     user_mapping::UserMapping,
     wine::{SyncMode, UpscaleMode},
   },
-  list::Category,
 };
 use clap::{ArgAction, Parser};
 

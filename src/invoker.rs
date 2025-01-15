@@ -1,4 +1,4 @@
-use crate::bubblewrap::{
+use crate::sandbox::{
   bwrap,
   sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
   user_mapping::UserMapping,

@@ -1,8 +1,8 @@
 mod bottles;
-mod bubblewrap;
 mod cli;
 mod invoker;
 mod list;
+mod sandbox;
 
 use clap::Parser;
 use cli::{Cli, Commands};
