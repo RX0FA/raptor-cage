@@ -129,7 +129,6 @@ impl FromStr for UpscaleMode {
 /// See a more complete explanation at
 /// https://github.com/lutris/lutris/wiki/How-to:-Esync/be48f27a4112271d0eb7c42eb14b57cea022f8c6.
 /// https://github.com/Frogging-Family/wine-tkg-git/issues/936.
-/// TODO: as of 2024-08 it seems that there is a new sync mode called "futex2".
 /// TODO: as of 2024-08 the latest and greatest option seems to be NTsync. It seems to require an
 /// additional /dev/... mount, see https://www.phoronix.com/news/Linux-6.10-Merging-NTSYNC.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

@@ -1,4 +1,3 @@
-mod bottles;
 mod cli;
 mod invoker;
 mod list;
@@ -21,7 +20,6 @@ fn main() -> anyhow::Result<()> {
       sync_mode,
       runner_path,
       prefix_path,
-      read_write,
       app_dir,
       app_bin,
       app_args,
@@ -36,7 +34,6 @@ fn main() -> anyhow::Result<()> {
       sync_mode,
       runner_path,
       prefix_path,
-      read_write,
       app_dir,
       app_bin,
       app_args,

@@ -1,3 +1,4 @@
+pub mod bottles;
 pub mod bwrap;
 mod display;
 pub mod sandbox;

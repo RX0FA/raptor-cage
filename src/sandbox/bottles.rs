@@ -38,13 +38,13 @@ pub fn get_data_root() -> anyhow::Result<PathBuf> {
   Ok(data_path)
 }
 
-pub fn list_prefixes(data_root: &PathBuf) -> anyhow::Result<Vec<String>> {
+pub fn list_prefixes(data_root: &Path) -> anyhow::Result<Vec<String>> {
   let prefixes_dir = data_root.join("bottles");
   let result = list_directories(&prefixes_dir);
   result
 }
 
-pub fn list_runners(data_root: &PathBuf) -> anyhow::Result<Vec<String>> {
+pub fn list_runners(data_root: &Path) -> anyhow::Result<Vec<String>> {
   let runners_dir = data_root.join("runners");
   let result = list_directories(&runners_dir);
   result

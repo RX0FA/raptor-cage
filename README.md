@@ -19,7 +19,7 @@ TODO
 # TODO
 ```
 
-## ❓ Frequently Asked Questions
+## 📌 Frequently Asked Questions
 
 * How to enable MangoHud?  
   Use the `-e MANGOHUD=1` parameter for games that use DXVK and VK3D, other games (OpenGL and WineD3D) may require to prepend `mangohud` before the binary (e.g., `mangohud wine game.exe`).
@@ -60,14 +60,14 @@ cargo upgrade --dry-run
 #### General
 
 * Some games (like HC2, DXM) create a detached sub-process, since we are using `--die-with-parent`, said games will not run when executed directly (with `-b` parameter, executing a shell and launching manually still works); so we need to think in a way to detect child processes and wait for them, or at least add a flag to enable this feature. Disabling `--die-with-parent` is another option, but that would undermine security a bit and leave lingering wine processes all over the place. Maybe add a `--lead-process=NAME_EXE:TIMEOUT` to wait for another process inside the sandbox.
-* Allow to pass runner and prefix path relative to the user's Bottles configuration directory so we avoid passing long paths.
 * Implement bash autocompletion, should be able to autocomplete prefix and runner names based on the ones detected under Bottles.
 * If application binary `-b` does not end with `.exe`, do not prepend `wine`, it's possible that the user wants to run a custom command like `mangohud` or a native Linux game.
 * Add `integrate` sub-command to create integrations e.g., `.desktop` shortcut, entry on Heroic launcher.
-* Wayland support, see https://www.phoronix.com/news/Wine-9.22-Released and https://wiki.archlinux.org/title/Wine#Wayland.
+* Native wayland support, see https://www.phoronix.com/news/Wine-9.22-Released and https://wiki.archlinux.org/title/Wine#Wayland.
 * Add `kill` sub-command to terminate all processes in a sandbox, need to connect to existing bwrap container.
-* Add argument to mount additional paths (needed for installers and maintenance).
+* Add argument to mount additional paths (needed for installers and maintenance), syntax can be similar to Docker's `-v PATH:FLAGS`.
 * When using the `integrate` sub-command to create a `.desktop` shortcut, extract executable icon and set it respectively. It can be done with a small windows executable calling a win32 API call or natively on Linux by using `wrestool`.
+* Add NTSYNC support, see also https://www.phoronix.com/news/Linux-6.14-NTSYNC-Driver-Ready.
 
 #### Packaging
 
@@ -83,4 +83,4 @@ cargo upgrade --dry-run
 * Simple GUI delivered as Flatpak that builds the needed commands based on the selected options, and creates `.desktop` shortcuts.
 * Investigate a way to use `--new-session` while allowing the user to read the output, without relying on seccomp, probably an easy fix could be to create an HTTP server where the output can be seen.
 * Fork `steam-native-runtime` and remove Steam related stuff (i.e., keep dependencies only) and implement GitHub Actions for update checking and deployment to the AUR. This would prevent the `pacman.conf` workaround described in the FAQ.
-* Create overlay filesystem on top of game directory in order to allow writing data without affecting the underlying files (could be used instead of `-w`).
+* Create overlay filesystem on top of game directory in order to allow writing data without affecting the underlying files (could be used instead of `:rw`).

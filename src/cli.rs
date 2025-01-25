@@ -7,6 +7,7 @@ use crate::{
   },
 };
 use clap::{ArgAction, Parser};
+use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 pub enum Commands {
@@ -39,13 +40,10 @@ pub enum Commands {
     sync_mode: SyncMode,
     /// Path of the Wine runner.
     #[arg(short, long = "runner", value_name = "PATH")]
-    runner_path: String,
+    runner_path: PathBuf,
     /// Path of the Wine prefix.
     #[arg(short, long = "prefix", value_name = "PATH")]
-    prefix_path: String,
-    /// Make app directory read-write.
-    #[arg(short = 'w', long = "writable", default_value = "false")]
-    read_write: bool,
+    prefix_path: PathBuf,
     /// Path that contains the application files.
     #[arg(short = 'd', long = "appdir", value_name = "PATH")]
     app_dir: Option<String>,
