@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: make build
+      run: make docker-build
     # https://github.com/ncipollo/release-action.
     - uses: ncipollo/release-action@v1
       with:
