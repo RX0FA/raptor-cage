@@ -13,9 +13,13 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v4
-    - name: Run tests
-      run: cargo test
     - name: Build
-      run: cargo build --release
+      run: make build
+    # https://github.com/ncipollo/release-action.
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "dist/raptor-cage.tgz,dist/raptor-cage.sha256"
