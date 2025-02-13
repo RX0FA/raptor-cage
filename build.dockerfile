@@ -9,4 +9,5 @@ RUN mkdir src &&\
     cargo build --release
 COPY --chown=builder:builder src src/
 RUN touch src/main.rs &&\
+    cargo test &&\
     cargo build --release
