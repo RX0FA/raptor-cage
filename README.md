@@ -16,7 +16,11 @@ TODO
 ### Command Line
 
 ```bash
-# TODO
+# Run Windows game, runner and prefix paths are relative to Bottles data directory.
+raptor-cage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b game.exe
+
+# Run native binary, and pass custom parameters.
+raptor-cage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b native_binary -- --param1
 ```
 
 ## 📌 Frequently Asked Questions

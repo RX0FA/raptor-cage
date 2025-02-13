@@ -351,7 +351,7 @@ fn build_args(
   let shell = env::var("SHELL").unwrap_or("bash".into());
   let shell_params: Vec<String> = vec!["--setenv".into(), "TERM".into(), term, shell];
   // Depending on the launch params, add the necessary arguments to start a regular shell or execute
-  // a command under wine.
+  // the specified command.
   match &launch_config.launch_params {
     LaunchParams::Unconfigured => {
       // No launch params, so start with a regular shell.
@@ -382,7 +382,10 @@ fn build_args(
         let bin_path = bin_buf
           .to_str()
           .with_context(|| format!("invalid path: {}", bin_buf.to_string_lossy()))?;
-        final_args.extend(["wine".into(), bin_path.into()]);
+        if bin_path.ends_with(".exe") {
+          final_args.push("wine".into());
+        }
+        final_args.push(bin_path.into());
         final_args.extend(app_args.to_owned());
       } else {
         // Only app_dir was set (not app_bin), so start with default shell (useful for maintenance).
