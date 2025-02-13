@@ -1,0 +1,57 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/rust
+{
+	"name": "raptor-cage",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"dockerFile": "Dockerfile",
+	"build": {
+		"args": {
+			// Even if Rust compiler tries to make the final applications as statically linked as
+			// possible, some crates (like reqwest) depend on external libraries like OpenSSL, this can be
+			// "fixed" by using a vendored OpenSSL (see Cargo.toml); however, the vendored OpenSSL will
+			// depend on glibc itself, so to ensure the best compatibility, use a Debian version behind.
+			// This will not affect the Rust version (you will get the latest stable when rebuilding the
+			// container without cache).
+			// Variant syntax is CONTAINER_VERSION-RUST_VERSION-BASE_OS.
+			// To update container see https://github.com/devcontainers/images/tree/main/src/rust.
+			"VARIANT": "1.0.20-1-bullseye"
+		}
+	},
+	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.
+	// "mounts": [
+	// 	{
+	// 		"source": "devcontainer-cargo-cache-${devcontainerId}",
+	// 		"target": "/usr/local/cargo",
+	// 		"type": "volume"
+	// 	}
+	// ]
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "rustc --version",
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"rust-lang.rust-analyzer",
+				"tamasfe.even-better-toml",
+				"vadimcn.vscode-lldb",
+				"streetsidesoftware.code-spell-checker",
+				"eamodio.gitlens@11.7.0",
+				"redhat.vscode-yaml"
+			]
+		}
+	},
+	"runArgs": [
+		"--cap-drop=DAC_OVERRIDE",
+		"--cap-drop=FOWNER",
+		"--cap-drop=MKNOD",
+		"--cap-drop=SYS_CHROOT",
+		"--cap-drop=NET_RAW",
+		"--cap-drop=NET_BIND_SERVICE"
+	]
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
