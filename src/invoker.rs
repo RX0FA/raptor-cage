@@ -1,10 +1,12 @@
-use crate::bubblewrap::{
+use crate::sandbox::{
   bwrap,
-  sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
+  sandbox::{
+    DeviceAccess, LaunchConfig, LaunchParams, MountConfig, NetworkMode, RuntimeEnv, SandboxConfig,
+  },
   user_mapping::UserMapping,
   wine::{SyncMode, UpscaleMode},
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 pub fn run(
   environment: Vec<String>,
@@ -15,9 +17,8 @@ pub fn run(
   verbose: bool,
   upscale_mode: UpscaleMode,
   sync_mode: SyncMode,
-  runner_path: String,
-  prefix_path: String,
-  read_write: bool,
+  runner_path: PathBuf,
+  prefix_path: PathBuf,
   app_dir: Option<String>,
   app_bin: Option<String>,
   app_args: Option<Vec<String>>,
@@ -30,9 +31,10 @@ pub fn run(
     verbose,
   };
   let launch_params = if let Some(app_dir) = app_dir {
+    let mount_config = MountConfig::from_str(&app_dir).map_err(|e| anyhow::anyhow!("{}", e))?;
     Some(LaunchParams::configured(
-      Some(!read_write),
-      app_dir,
+      !mount_config.writable,
+      mount_config.path.to_string_lossy().to_string(),
       app_bin,
       app_args,
     ))
@@ -45,7 +47,7 @@ pub fn run(
     launch_params,
     Some(upscale_mode),
     Some(sync_mode),
-  );
+  )?;
   let env_overrides: HashMap<String, String> = environment
     .into_iter()
     .map(|item| {

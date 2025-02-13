@@ -1,6 +1,7 @@
-mod bubblewrap;
 mod cli;
 mod invoker;
+mod list;
+mod sandbox;
 
 use clap::Parser;
 use cli::{Cli, Commands};
@@ -19,7 +20,6 @@ fn main() -> anyhow::Result<()> {
       sync_mode,
       runner_path,
       prefix_path,
-      read_write,
       app_dir,
       app_bin,
       app_args,
@@ -34,10 +34,10 @@ fn main() -> anyhow::Result<()> {
       sync_mode,
       runner_path,
       prefix_path,
-      read_write,
       app_dir,
       app_bin,
       app_args,
     ),
+    Commands::List { category } => list::list(category),
   }
 }

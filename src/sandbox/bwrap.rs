@@ -196,12 +196,22 @@ fn build_args(
     "--tmpfs",
     "/opt",
     "--ro-bind",
-    &launch_config.wine_root,
+    launch_config
+      .runner_path
+      .to_str()
+      .context("bad runner path")?,
     INNER_WINE_ROOT,
   ]);
   // Prefix needs to be read-write because some dependencies may be installed or system files change
   // while wine is running, even changing the registry requires write access.
-  args.extend(["--bind", &launch_config.wine_prefix, INNER_WINE_PREFIX]);
+  args.extend([
+    "--bind",
+    launch_config
+      .prefix_path
+      .to_str()
+      .context("bad prefix path")?,
+    INNER_WINE_PREFIX,
+  ]);
   // Mount X11 socket to allow running GUI apps. Using the same X11 display number as the host
   // because using a different number will not work despite being the first recommendation in the
   // ArchWiki: https://wiki.archlinux.org/title/Bubblewrap#Using_X11.
@@ -338,13 +348,8 @@ fn build_args(
   // each element), however args still needs to be converted to Vec<String> at the end.
   let mut final_args: Vec<String> = args.into_iter().map(String::from).collect();
   let term = env::var("TERM").unwrap_or("xterm-256color".into());
-  let shell_params: Vec<String> = vec![
-    "--setenv".into(),
-    "TERM".into(),
-    term,
-    // TODO: get default shell.
-    "bash".into(),
-  ];
+  let shell = env::var("SHELL").unwrap_or("bash".into());
+  let shell_params: Vec<String> = vec!["--setenv".into(), "TERM".into(), term, shell];
   // Depending on the launch params, add the necessary arguments to start a regular shell or execute
   // a command under wine.
   match &launch_config.launch_params {

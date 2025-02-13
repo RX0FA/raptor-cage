@@ -1,9 +1,13 @@
-use crate::bubblewrap::{
-  sandbox::{DeviceAccess, NetworkMode},
-  user_mapping::UserMapping,
-  wine::{SyncMode, UpscaleMode},
+use crate::{
+  list::Category,
+  sandbox::{
+    sandbox::{DeviceAccess, NetworkMode},
+    user_mapping::UserMapping,
+    wine::{SyncMode, UpscaleMode},
+  },
 };
 use clap::{ArgAction, Parser};
+use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 pub enum Commands {
@@ -36,21 +40,23 @@ pub enum Commands {
     sync_mode: SyncMode,
     /// Path of the Wine runner.
     #[arg(short, long = "runner", value_name = "PATH")]
-    runner_path: String,
+    runner_path: PathBuf,
     /// Path of the Wine prefix.
     #[arg(short, long = "prefix", value_name = "PATH")]
-    prefix_path: String,
-    /// Make app directory read-write.
-    #[arg(short = 'w', long = "writable", default_value = "false")]
-    read_write: bool,
+    prefix_path: PathBuf,
     /// Path that contains the application files.
-    #[arg(short, long = "appdir", value_name = "PATH")]
+    #[arg(short = 'd', long = "appdir", value_name = "PATH")]
     app_dir: Option<String>,
     /// Path of the executable file relative to appdir.
     #[arg(short = 'b', long = "appbin", value_name = "BIN")]
     app_bin: Option<String>,
     /// Optional game arguments, need to be placed after a double dash.
     app_args: Option<Vec<String>>,
+  },
+  /// List installed runners and prefixes.
+  List {
+    #[arg(long, value_name = "CATEGORY", default_value = "all", value_parser)]
+    category: Category,
   },
 }
 

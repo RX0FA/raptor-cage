@@ -8,9 +8,9 @@ license = "CIL-1.0"
 
 [dependencies]
 anyhow = "1.0.95"
-clap = { version = "4.5.23", features = ["derive"] }
+clap = { version = "4.5.26", features = ["derive"] }
 rand = "0.8.5"
-tempfile = "3.14.0"
+tempfile = "3.15.0"
 
 [profile.release]
 lto = true
