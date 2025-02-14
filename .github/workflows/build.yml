@@ -52,7 +52,7 @@ jobs:
         tag_name="${{ steps.tag_step.outputs.tag_name }}"
         tgz_sha256=$(cat dist/raptor-cage-${tag_name}.sha256 | awk '{print $1}')
         sed -e "s/{{VERSION}}/${current_version}/" -e "s/{{RELEASE}}/${pkgbuild_pkgrel}/" \
-          -e "s/{{TAG_NAME}}/${tag_name}/gRX0FA-patch-1" -e "s/{{SHA256SUM}}/${tgz_sha256}/" \
+          -e "s/{{TAG_NAME}}/${tag_name}/g" -e "s/{{SHA256SUM}}/${tgz_sha256}/" \
           packaging/PKGBUILD > raptor-cage-bin/PKGBUILD
         cd raptor-cage-bin
         docker run --rm -v "`pwd`:/data" -w /data --env user_uid=$(id -u) --env user_gid=$(id -g) \
