@@ -10,6 +10,7 @@ use clap::{ArgAction, Parser};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 pub enum Commands {
   /// Run application sandboxed.
   #[command(arg_required_else_help = true)]
