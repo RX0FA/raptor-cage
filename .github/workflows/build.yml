@@ -49,7 +49,7 @@ jobs:
           pkgbuild_pkgrel=1
         fi
         tag_name="${{ steps.tag_step.outputs.tag_name }}"
-        tgz_sha256="$(cat dist/raptor-cage.sha256 | awk '{print \$1}')"
+        tgz_sha256=$(cat dist/raptor-cage.sha256 | awk '{print $1}')
         sed -e "s/{{VERSION}}/${current_version}/" -e "s/{{RELEASE}}/${pkgbuild_pkgrel}/" \
           -e "s/{{TAG_NAME}}/${tag_name}/" -e "s/{{SHA256SUM}}/${tgz_sha256}/" \
           packaging/PKGBUILD > raptor-cage-bin/PKGBUILD
