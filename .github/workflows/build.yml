@@ -23,7 +23,7 @@ jobs:
     - name: Generate Tag
       id: tag_step
       run: |-
-        tag_name="$(echo 1.0.0)-$(git rev-parse HEAD | head -c 7)"
+        tag_name="$(echo 1.0.0)-$(date +%y%m%d)-$(git rev-parse HEAD | head -c 7)"
         echo "tag_name=${tag_name}" | tee -a "$GITHUB_OUTPUT"
     # https://github.com/ncipollo/release-action.
     - uses: ncipollo/release-action@v1
