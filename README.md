@@ -3,7 +3,7 @@
     raptor-cage
   </h1>
   <p>
-    Run Linux games in a secure sandbox, various native and non-native titles are supported.
+    Run games in a secure sandbox, various native and non-native titles are supported.
   </p>
 </div>
 
