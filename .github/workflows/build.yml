@@ -37,7 +37,7 @@ jobs:
       run: |-
         mkdir -p ~/.ssh
         echo "aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN" >> ~/.ssh/known_hosts
-        git clone https://aur.archlinux.org/raptor-cage-bin.git
+        git -c init.defaultBranch=master clone https://aur.archlinux.org/raptor-cage-bin.git
         pkgbuild_pkgver=$(grep "^pkgver=" raptor-cage-bin/PKGBUILD | cut -d'=' -f2)
         pkgbuild_pkgrel=$(grep "^pkgrel=" raptor-cage-bin/PKGBUILD | cut -d'=' -f2)
         current_version="${{ steps.tag_step.outputs.program_version }}"
@@ -55,6 +55,7 @@ jobs:
           packaging/PKGBUILD > raptor-cage-bin/PKGBUILD
         echo "---> PKGBUILD"
         cd raptor-cage-bin
+        id
         docker run --rm -v "`pwd`:/data" -w /data archlinux:latest bash \
           -c 'useradd -M -s /bin/bash user && su user -c "makepkg --printsrcinfo > .SRCINFO"'
         git config user.name RX0FA
