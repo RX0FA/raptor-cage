@@ -23,8 +23,9 @@ jobs:
     - name: Generate Tag
       id: tag_step
       run: |-
-        tag_name="$(echo 1.0.0)-$(date +%y%m%d)-$(git rev-parse HEAD | head -c 7)"
-        echo "tag_name=${tag_name}" | tee -a "$GITHUB_OUTPUT"
+        program_version="$(echo 1.0.0)"
+        tag_name="${program_version}-$(date +%y%m%d%H%M)-$(git rev-parse HEAD | head -c 7)"
+        printf "tag_name=${tag_name}\nprogram_version=${program_version}\n" | tee -a "$GITHUB_OUTPUT"
     # https://github.com/ncipollo/release-action.
     - uses: ncipollo/release-action@v1
       id: release_step
@@ -32,5 +33,8 @@ jobs:
         artifacts: "dist/raptor-cage.tgz,dist/raptor-cage.sha256"
         tag: ${{ steps.tag_step.outputs.tag_name }}
         makeLatest: true
-    - name: AUR
-      run: echo "${{ steps.release_step.outputs.upload_url }}" && cat dist/raptor-cage.sha256 | awk '{print $1}'
+    - name: Publish to the AUR
+      run: |-
+        echo "aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN" >> ~/.ssh/known_hosts
+        git clone https://aur.archlinux.org/raptor-cage-bin.git
+        
