@@ -18,7 +18,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: make docker-build
+      run: |-
+        echo docker run --rm -v "`pwd`:/data" -w /data --env user_uid=$(id -u) --env user_gid=$(id -g)
+        exit 1
+        make docker-build
     # Tag that will be automatically picked by ncipollo/release-action.
     - name: Generate Tag
       id: tag_step
