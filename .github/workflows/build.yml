@@ -61,6 +61,7 @@ jobs:
         docker run --rm -v "`pwd`:/data" -w /data --env user_uid=$(id -u) --env user_gid=$(id -g) \
           archlinux:latest bash \
           -c 'groupadd -g $user_gid user && useradd -M -s /bin/bash -u $user_uid -g $user_gid user && su user -c "makepkg --printsrcinfo > .SRCINFO"'
+        git remote add aur ssh://aur@aur.archlinux.org/raptor-cage-bin.git
         git config user.name RX0FA
         git config user.email 174369883+RX0FA@users.noreply.github.com
         git add .SRCINFO PKGBUILD
@@ -68,6 +69,6 @@ jobs:
         key_file="${{ github.workspace }}/id_ed25519"
         echo "$AUR_PRIVATE_KEY" > "$key_file"
         chmod 600 "$key_file"
-        GIT_SSH_COMMAND="ssh -i \"${key_file}\" -o IdentitiesOnly=yes" git push
+        GIT_SSH_COMMAND="ssh -i \"${key_file}\" -o IdentitiesOnly=yes" git push aur master
         
         
