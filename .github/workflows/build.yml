@@ -29,7 +29,7 @@ jobs:
     - uses: ncipollo/release-action@v1
       id: release_step
       with:
-        artifacts: "dist/raptor-cage-${tag_name}.tgz,dist/raptor-cage-${tag_name}.sha256"
+        artifacts: "dist/raptor-cage-${{ steps.tag_step.outputs.tag_name }}.tgz,dist/raptor-cage-${{ steps.tag_step.outputs.tag_name }}.sha256"
         tag: ${{ steps.tag_step.outputs.tag_name }}
         makeLatest: true
     - name: Publish to the AUR
