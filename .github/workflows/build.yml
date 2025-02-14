@@ -35,6 +35,8 @@ jobs:
         tag: ${{ steps.tag_step.outputs.tag_name }}
         makeLatest: true
     - name: Publish to the AUR
+      env:
+        AUR_PRIVATE_KEY: ${{ secrets.AUR_PRIVATE_KEY }}
       run: |-
         mkdir -p ~/.ssh
         echo "aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN" >> ~/.ssh/known_hosts
@@ -63,6 +65,7 @@ jobs:
         git config user.email 174369883+RX0FA@users.noreply.github.com
         git add .SRCINFO PKGBUILD
         git commit -m 'Update build files'
-        cat .SRCINFO
+        #echo "$AUR_PRIVATE_KEY" > 
+        ls "${{ github.workspace }}"
         
         
