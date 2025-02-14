@@ -32,4 +32,4 @@ jobs:
         artifacts: "dist/raptor-cage.tgz,dist/raptor-cage.sha256"
         tag: ${{ steps.tag_step.outputs.tag_name }}
     - name: AUR
-      run: echo "${{ steps.release_step.outputs.upload_url }}"
+      run: echo "${{ steps.release_step.outputs.upload_url }}" && cat dist/raptor-cage.sha256 | awk '{print $1}'
