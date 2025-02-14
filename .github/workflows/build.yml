@@ -21,12 +21,15 @@ jobs:
       run: make docker-build
     # Tag that will be automatically picked by ncipollo/release-action.
     - name: Generate Tag
-      id: generate_tag
+      id: tag_step
       run: |-
-        tag_name="$(date +%y%m%d)-$(git rev-parse HEAD | head -c 7)"
+        tag_name="$(echo 1.0.0)-$(git rev-parse HEAD | head -c 7)"
         echo "tag_name=${tag_name}" | tee -a "$GITHUB_OUTPUT"
     # https://github.com/ncipollo/release-action.
     - uses: ncipollo/release-action@v1
+      id: release_step
       with:
         artifacts: "dist/raptor-cage.tgz,dist/raptor-cage.sha256"
-        tag: ${{ steps.generate_tag.outputs.tag_name }}
+        tag: ${{ steps.tag_step.outputs.tag_name }}
+    - name: AUR
+      run: echo "${{ steps.release_step.outputs.upload_url }}"
