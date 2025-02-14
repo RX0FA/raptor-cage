@@ -23,9 +23,9 @@ jobs:
     - name: Tag
       run: |-
         tag_name="$(date +%y%m%d)-$(git rev-parse HEAD | head -c 7)"
+        echo "$tag_name"
         git tag "$tag_name"
     # https://github.com/ncipollo/release-action.
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "dist/raptor-cage.tgz,dist/raptor-cage.sha256"
-        tag: "1.0.0"
