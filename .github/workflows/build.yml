@@ -54,6 +54,7 @@ jobs:
         sed -e "s/{{VERSION}}/${current_version}/" -e "s/{{RELEASE}}/${pkgbuild_pkgrel}/" \
           -e "s/{{TAG_NAME}}/${tag_name}/g" -e "s/{{SHA256SUM}}/${tgz_sha256}/" \
           packaging/PKGBUILD > raptor-cage-bin/PKGBUILD
+        cp packaging/.gitignore raptor-cage-bin/.gitignore
         cd raptor-cage-bin
         docker run --rm -v "`pwd`:/data" -w /data --env user_uid=$(id -u) --env user_gid=$(id -g) \
           archlinux:latest bash \
@@ -61,7 +62,7 @@ jobs:
         git remote add aur ssh://aur@aur.archlinux.org/raptor-cage-bin.git
         git config user.name RX0FA
         git config user.email 174369883+RX0FA@users.noreply.github.com
-        git add .SRCINFO PKGBUILD
+        git add .SRCINFO PKGBUILD .gitignore
         git commit -m "Update build files ($tag_name)"
         key_file="${{ github.workspace }}/id_ed25519"
         echo "$AUR_PRIVATE_KEY" > "$key_file"
