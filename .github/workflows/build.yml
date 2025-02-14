@@ -35,6 +35,25 @@ jobs:
         makeLatest: true
     - name: Publish to the AUR
       run: |-
+        mkdir -p ~/.ssh
         echo "aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN" >> ~/.ssh/known_hosts
         git clone https://aur.archlinux.org/raptor-cage-bin.git
+        pkgbuild_pkgver=$(grep "^pkgver=" raptor-cage-bin/PKGBUILD | cut -d'=' -f2)
+        pkgbuild_pkgrel=$(grep "^pkgrel=" raptor-cage-bin/PKGBUILD | cut -d'=' -f2)
+        current_version="${{ steps.tag_step.outputs.program_version }}"
+        if [ "$current_version" == "$pkgbuild_pkgver" ]; then
+          # Same version, so increase pkgbuild_pkgrel.
+          ((pkgbuild_pkgrel++))
+        else
+          # Different version, so reset pkgbuild_pkgrel.
+          pkgbuild_pkgrel=1
+        fi
+        tag_name="${{ steps.tag_step.outputs.tag_name }}"
+        tgz_sha256="$(cat dist/raptor-cage.sha256 | awk '{print \$1}')"
+        sed -e "s/{{VERSION}}/${current_version}/" -e "s/{{RELEASE}}/${pkgbuild_pkgrel}/" \
+          -e "s/{{TAG_NAME}}/${tag_name}/" -e "s/{{SHA256SUM}}/${tgz_sha256}/" \
+          packaging/PKGBUILD > raptor-cage-bin/PKGBUILD
+        echo "---> PKGBUILD"
+        cat raptor-cage-bin/PKGBUILD
+        
         
