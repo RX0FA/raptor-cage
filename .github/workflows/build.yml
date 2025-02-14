@@ -20,7 +20,8 @@ jobs:
     - name: Build
       run: make docker-build
     # Tag that will be automatically picked by ncipollo/release-action.
-    - name: Tag
+    - name: Generate Tag
+      id: generate_tag
       run: |-
         tag_name="$(date +%y%m%d)-$(git rev-parse HEAD | head -c 7)"
         echo "tag_name=${tag_name}" | tee -a "$GITHUB_OUTPUT"
@@ -28,4 +29,4 @@ jobs:
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "dist/raptor-cage.tgz,dist/raptor-cage.sha256"
-        tag: ${{ steps.Tag.outputs.tag_name }}
+        tag: ${{ steps.generate_tag.outputs.tag_name }}
