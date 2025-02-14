@@ -64,8 +64,10 @@ jobs:
         git config user.name RX0FA
         git config user.email 174369883+RX0FA@users.noreply.github.com
         git add .SRCINFO PKGBUILD
-        git commit -m 'Update build files'
-        #echo "$AUR_PRIVATE_KEY" > 
-        ls "${{ github.workspace }}"
+        git commit -m "Update build files ($tag_name)"
+        key_file="${{ github.workspace }}/id_ed25519"
+        echo "$AUR_PRIVATE_KEY" > "$key_file"
+        chmod 600 "$key_file"
+        GIT_SSH_COMMAND="ssh -i \"${key_file}\" -o IdentitiesOnly=yes" git push
         
         
