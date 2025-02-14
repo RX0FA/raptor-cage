@@ -17,7 +17,6 @@ jobs:
     - name: Build
       run: |-
         make docker-build
-    # Tag that will be automatically picked by ncipollo/release-action.
     - name: Generate Tag
       id: tag_step
       run: |-
