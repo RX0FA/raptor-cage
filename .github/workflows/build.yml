@@ -54,6 +54,13 @@ jobs:
           -e "s/{{TAG_NAME}}/${tag_name}/" -e "s/{{SHA256SUM}}/${tgz_sha256}/" \
           packaging/PKGBUILD > raptor-cage-bin/PKGBUILD
         echo "---> PKGBUILD"
-        cat raptor-cage-bin/PKGBUILD
+        cd raptor-cage-bin
+        docker run --rm -v "`pwd`:/data" -w /data archlinux:latest bash \
+          -c 'useradd -M -s /bin/bash user && su user -c "makepkg --printsrcinfo > .SRCINFO"'
+        git config user.name RX0FA
+        git config user.email 174369883+RX0FA@users.noreply.github.com
+        git add .SRCINFO PKGBUILD
+        git commit -m 'Update build files'
+        cat .SRCINFO
         
         
