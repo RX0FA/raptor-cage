@@ -2,9 +2,6 @@ name: Rust
 
 on:
   push:
-    # branches: [ "master", "dev" ]
-    branches: [ '*' ] # test
-  pull_request:
     branches: [ "master" ]
 
 env:
@@ -56,7 +53,6 @@ jobs:
         sed -e "s/{{VERSION}}/${current_version}/" -e "s/{{RELEASE}}/${pkgbuild_pkgrel}/" \
           -e "s/{{TAG_NAME}}/${tag_name}/" -e "s/{{SHA256SUM}}/${tgz_sha256}/" \
           packaging/PKGBUILD > raptor-cage-bin/PKGBUILD
-        echo "---> PKGBUILD"
         cd raptor-cage-bin
         docker run --rm -v "`pwd`:/data" -w /data --env user_uid=$(id -u) --env user_gid=$(id -g) \
           archlinux:latest bash \
