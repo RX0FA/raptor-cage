@@ -12,5 +12,6 @@ docker-build: clean
 	mkdir -p dist
 	docker build -f build.dockerfile . -t raptor-cage
 	docker run --rm raptor-cage cat /builder/target/release/raptor-cage > dist/raptor-cage
+	chmod +x dist/raptor-cage
 	tar czf dist/raptor-cage.tgz -C dist raptor-cage
 	sh -c 'cd dist && sha256sum raptor-cage.tgz | tee raptor-cage.sha256'

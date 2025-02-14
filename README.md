@@ -9,7 +9,26 @@
 
 ## ⬇️ Installation
 
-TODO
+### ArchLinux
+
+```bash
+# Using paru.
+paru -S raptor-cage-bin
+
+# Manual clone.
+git clone https://aur.archlinux.org/raptor-cage-bin.git
+cd raptor-cage-bin
+makepkg -sri
+```
+
+### Manual Installation
+
+```bash
+download_url="$(curl -sL 'https://api.github.com/repos/RX0FA/raptor-cage/releases/latest' | grep -E 'browser_download_url.+\.tgz' | grep -oP '"browser_download_url": "\K[^"]+')"
+curl -L -o raptor-cage.tgz "$download_url"
+tar xf raptor-cage.tgz
+sudo install -Dm755 raptor-cage "/usr/local/bin/rcage"
+```
 
 ## 💡 Usage
 
@@ -17,10 +36,10 @@ TODO
 
 ```bash
 # Run Windows game, runner and prefix paths are relative to Bottles data directory.
-raptor-cage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b game.exe
+rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b game.exe
 
 # Run native binary, and pass custom parameters.
-raptor-cage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b native_binary -- --param1
+rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b native_binary -- --param1
 ```
 
 ## 📌 Frequently Asked Questions
@@ -65,9 +84,8 @@ cargo upgrade --dry-run
 
 * Some games (like HC2, DXM) create a detached sub-process, since we are using `--die-with-parent`, said games will not run when executed directly (with `-b` parameter, executing a shell and launching manually still works); so we need to think in a way to detect child processes and wait for them, or at least add a flag to enable this feature. Disabling `--die-with-parent` is another option, but that would undermine security a bit and leave lingering wine processes all over the place. Maybe add a `--lead-process=NAME_EXE:TIMEOUT` to wait for another process inside the sandbox.
 * Implement bash autocompletion, should be able to autocomplete prefix and runner names based on the ones detected under Bottles.
-* If application binary `-b` does not end with `.exe`, do not prepend `wine`, it's possible that the user wants to run a custom command like `mangohud` or a native Linux game.
 * Add `integrate` sub-command to create integrations e.g., `.desktop` shortcut, entry on Heroic launcher.
-* Native wayland support, see https://www.phoronix.com/news/Wine-9.22-Released and https://wiki.archlinux.org/title/Wine#Wayland.
+* Native wayland support, see https://www.phoronix.com/news/Wine-9.22-Released and https://wiki.archlinux.org/title/Wine#Wayland. Also consider bringing back `--unshare-ipc` if using Wayland prevents the issue described in bwrap.rs#90.
 * Add `kill` sub-command to terminate all processes in a sandbox, need to connect to existing bwrap container.
 * Add argument to mount additional paths (needed for installers and maintenance), syntax can be similar to Docker's `-v PATH:FLAGS`.
 * When using the `integrate` sub-command to create a `.desktop` shortcut, extract executable icon and set it respectively. It can be done with a small windows executable calling a win32 API call or natively on Linux by using `wrestool`.
@@ -75,9 +93,6 @@ cargo upgrade --dry-run
 
 #### Packaging
 
-* AUR package, also add `mangohud` as optional dependency.
-* Setup GitHub Actions to automatically publish AUR package.
-* Normal binary release.
 * cURL install script.
 * Create deb package. It should depend on Steam libraries (similarly to Arch's `steam-native-runtime`), see https://packages.ubuntu.com/search?keywords=steam&searchon=names&suite=noble&section=all.
 * Make a reusable lib version (`Cargo.lock` needs to be ignored, see https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html).

@@ -20,7 +20,7 @@ jobs:
     - name: Generate Tag
       id: tag_step
       run: |-
-        program_version="$(echo 1.0.0)"
+        program_version=$(./dist/raptor-cage -V | awk '{print $2}')
         tag_name="${program_version}-$(date +%y%m%d%H%M)-$(git rev-parse HEAD | head -c 7)"
         printf "tag_name=${tag_name}\nprogram_version=${program_version}\n" | tee -a "$GITHUB_OUTPUT"
     # https://github.com/ncipollo/release-action.
