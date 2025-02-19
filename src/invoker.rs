@@ -1,15 +1,25 @@
 use crate::sandbox::{
   bwrap,
-  sandbox::{
-    DeviceAccess, LaunchConfig, LaunchParams, MountConfig, NetworkMode, RuntimeEnv, SandboxConfig,
-  },
+  mount::{MountConfig, MountMapping},
+  sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
   user_mapping::UserMapping,
   wine::{SyncMode, UpscaleMode},
 };
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
+fn parse_mappings(volumes: &[String]) -> anyhow::Result<Vec<MountMapping>> {
+  let mut mappings: Vec<MountMapping> = Vec::with_capacity(volumes.len());
+  for volume in volumes {
+    let mapping =
+      MountMapping::from_str(volume).map_err(|e| anyhow::anyhow!("volume error: {}", e))?;
+    mappings.push(mapping);
+  }
+  Ok(mappings)
+}
+
 pub fn run(
-  environment: Vec<String>,
+  environment: &[String],
+  volumes: &[String],
   no_namespace_isolation: bool,
   user_mapping: UserMapping,
   network_mode: NetworkMode,
@@ -57,5 +67,11 @@ pub fn run(
     .collect();
   let mut runtime_env = RuntimeEnv::from_env()?;
   runtime_env.overrides = Some(env_overrides);
-  bwrap::run(&sandbox_config, &launch_config, &runtime_env)
+  let mount_mappings = parse_mappings(volumes)?;
+  bwrap::run(
+    &sandbox_config,
+    &launch_config,
+    &runtime_env,
+    &mount_mappings,
+  )
 }

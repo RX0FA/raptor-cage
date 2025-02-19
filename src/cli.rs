@@ -18,6 +18,9 @@ pub enum Commands {
     /// Environment variable overrides.
     #[arg(short = 'e', long = "setenv", value_name="KEY=VALUE", action = ArgAction::Append)]
     environment: Vec<String>,
+    /// Additional mount points.
+    #[arg(short = 'v', long = "volume", value_name="PATH", action = ArgAction::Append)]
+    volumes: Vec<String>,
     /// Disable namespace isolation.
     #[arg(long, default_value = "false")]
     no_namespace_isolation: bool,
@@ -31,7 +34,7 @@ pub enum Commands {
     #[arg(long, value_name = "ACCESS", default_value = "minimal", value_parser)]
     device_access: DeviceAccess,
     /// Print additional troubleshooting information.
-    #[arg(short, long, default_value = "false")]
+    #[arg(long, default_value = "false")]
     verbose: bool,
     /// One of none, dlss, fsr:mode:stre.
     #[arg(long, value_name = "MODE", default_value = "none", value_parser)]
