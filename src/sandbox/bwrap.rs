@@ -1,4 +1,5 @@
 use super::display::Display;
+use super::mount::MountMapping;
 use super::sandbox::{
   DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig,
 };
@@ -68,6 +69,21 @@ pub fn get_device_args(device_access: &DeviceAccess) -> anyhow::Result<Vec<Strin
   }
 }
 
+fn get_mount_args(mount_mappings: &[MountMapping]) -> Vec<String> {
+  let mut args: Vec<String> = Vec::with_capacity(mount_mappings.len() * 3);
+  for mapping in mount_mappings {
+    let bind_param = if mapping.target_config.writable {
+      "--bind"
+    } else {
+      "--ro-bind"
+    };
+    let source = mapping.source_path.to_string_lossy();
+    let target = mapping.target_config.path.to_string_lossy();
+    args.extend(vec![bind_param.into(), source.into(), target.into()]);
+  }
+  args
+}
+
 const INNER_WINE_ROOT: &str = "/opt/wine";
 const INNER_WINE_PREFIX: &str = "/var/lib/wine";
 const INNER_APP_DIR: &str = "/app";
@@ -76,6 +92,7 @@ fn build_args(
   sandbox_config: &SandboxConfig,
   launch_config: &LaunchConfig,
   runtime_env: &RuntimeEnv,
+  mount_mappings: &[MountMapping],
   empty_file_path: &str,
 ) -> anyhow::Result<Vec<String>> {
   let mut args = vec![
@@ -350,6 +367,9 @@ fn build_args(
   let term = env::var("TERM").unwrap_or("xterm-256color".into());
   let shell = env::var("SHELL").unwrap_or("bash".into());
   let shell_params: Vec<String> = vec!["--setenv".into(), "TERM".into(), term, shell];
+  // Additional mounts.
+  let mount_args = get_mount_args(mount_mappings);
+  final_args.extend(mount_args);
   // Depending on the launch params, add the necessary arguments to start a regular shell or execute
   // the specified command.
   match &launch_config.launch_params {
@@ -408,6 +428,7 @@ pub fn run(
   sandbox_config: &SandboxConfig,
   launch_config: &LaunchConfig,
   runtime_env: &RuntimeEnv,
+  mount_mappings: &[MountMapping],
 ) -> anyhow::Result<()> {
   // Temporary file will be automatically removed when variable goes out of scope.
   let temp_file = NamedTempFile::new()?;
@@ -415,7 +436,13 @@ pub fn run(
     .path()
     .to_str()
     .context("could not get temporary file path")?;
-  let args = build_args(sandbox_config, launch_config, &runtime_env, temp_file_path)?;
+  let args = build_args(
+    sandbox_config,
+    launch_config,
+    runtime_env,
+    mount_mappings,
+    temp_file_path,
+  )?;
   let mut cmd = Command::new("bwrap")
     .args(args)
     .stdout(Stdio::inherit())

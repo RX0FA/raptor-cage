@@ -2,3 +2,4 @@ debug/
 target/
 dist/
 .SRCINFO
+id_ed25519
