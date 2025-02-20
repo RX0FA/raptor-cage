@@ -3,9 +3,9 @@ use super::user_mapping::UserMapping;
 use super::wine::{SyncMode, UpscaleMode};
 use anyhow::Context;
 use std::collections::HashMap;
+use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::{env, fmt, fs};
 
 /// Represents network configuration options.
 #[derive(Debug, Clone)]
@@ -46,119 +46,6 @@ impl FromStr for DeviceAccess {
       "all" | "a" => Ok(DeviceAccess::All),
       "minimal" | "m" => Ok(DeviceAccess::Minimal),
       _ => Err(format!("invalid device access mode: {}", s)),
-    }
-  }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum MountConfigError {
-  EmptyPath,
-  DisallowedPath(PathBuf),
-  PathError(PathBuf, String),
-}
-
-impl fmt::Display for MountConfigError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      MountConfigError::EmptyPath => write!(f, "path must not be empty"),
-      MountConfigError::DisallowedPath(path) => {
-        write!(f, "path is not allowed: {}", path.to_string_lossy())
-      }
-      MountConfigError::PathError(path, error) => write!(
-        f,
-        "path \"{}\" can not be resolved: {}",
-        path.to_string_lossy(),
-        error
-      ),
-    }
-  }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct MountConfig {
-  pub path: PathBuf,
-  pub writable: bool,
-}
-
-impl FromStr for MountConfig {
-  type Err = MountConfigError;
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
-    let mut parts: Vec<&str> = s.rsplitn(2, ":").collect();
-    parts.reverse();
-    if parts[0].is_empty() {
-      return Err(MountConfigError::EmptyPath);
-    }
-    let path = PathBuf::from(parts[0]);
-    // Resolve symlinks and relative paths, this will help us identify paths that we want to be
-    // forbidden to mount (such as "/"), bwrap will take care of making sure that the path is valid.
-    let canonical_path = fs::canonicalize(&path)
-      .map_err(|e| MountConfigError::PathError(path.clone(), e.to_string()))?;
-    if canonical_path.to_string_lossy().to_string() == "/" {
-      return Err(MountConfigError::DisallowedPath(path));
-    }
-    let writable = parts.len() > 1 && parts[1].split(',').any(|flag| flag == "rw");
-    Ok(Self { path, writable })
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use std::path::PathBuf;
-  use std::str::FromStr;
-
-  #[test]
-  fn test_mount_config_parsing() {
-    let test_cases = vec![
-      ("", Err(MountConfigError::EmptyPath)),
-      (":", Err(MountConfigError::EmptyPath)),
-      (
-        "/usr/bin",
-        Ok(MountConfig {
-          path: PathBuf::from("/usr/bin"),
-          writable: false,
-        }),
-      ),
-      (
-        "/usr/bin:",
-        Ok(MountConfig {
-          path: PathBuf::from("/usr/bin"),
-          writable: false,
-        }),
-      ),
-      (
-        "/usr/bin:rw",
-        Ok(MountConfig {
-          path: PathBuf::from("/usr/bin"),
-          writable: true,
-        }),
-      ),
-      (
-        "/usr/bin:noexec,rw",
-        Ok(MountConfig {
-          path: PathBuf::from("/usr/bin"),
-          writable: true,
-        }),
-      ),
-      (
-        "/does/not/exist",
-        Err(MountConfigError::PathError(
-          PathBuf::from("/does/not/exist"),
-          "No such file or directory (os error 2)".to_string(),
-        )),
-      ),
-      (
-        "/",
-        Err(MountConfigError::DisallowedPath(PathBuf::from("/"))),
-      ),
-      (
-        "/./",
-        Err(MountConfigError::DisallowedPath(PathBuf::from("/"))),
-      ),
-    ];
-    for (input, expected) in test_cases {
-      let result = MountConfig::from_str(input);
-      assert_eq!(result, expected);
     }
   }
 }

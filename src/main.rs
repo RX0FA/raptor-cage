@@ -11,6 +11,7 @@ fn main() -> anyhow::Result<()> {
   match args.command {
     Commands::Run {
       environment,
+      volumes,
       no_namespace_isolation,
       user_mapping,
       network_mode,
@@ -24,7 +25,8 @@ fn main() -> anyhow::Result<()> {
       app_bin,
       app_args,
     } => invoker::run(
-      environment,
+      &environment,
+      &volumes,
       no_namespace_isolation,
       user_mapping,
       network_mode,
