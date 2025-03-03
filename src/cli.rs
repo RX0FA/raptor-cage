@@ -44,10 +44,10 @@ pub enum Commands {
     sync_mode: SyncMode,
     /// Path of the Wine runner.
     #[arg(short, long = "runner", value_name = "PATH")]
-    runner_path: PathBuf,
+    runner_path: Option<PathBuf>,
     /// Path of the Wine prefix.
     #[arg(short, long = "prefix", value_name = "PATH")]
-    prefix_path: PathBuf,
+    prefix_path: Option<PathBuf>,
     /// Path that contains the application files.
     #[arg(short = 'd', long = "appdir", value_name = "PATH")]
     app_dir: Option<String>,
@@ -65,7 +65,7 @@ pub enum Commands {
 }
 
 #[derive(Debug, Parser)]
-#[command(about = "Run and manage games inside of a sandbox", long_about = None)]
+#[command(about = "Run games in a secure sandbox", long_about = None)]
 pub struct Cli {
   #[command(subcommand)]
   pub command: Commands,
