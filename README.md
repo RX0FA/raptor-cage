@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="assets/icon.png" />
   <h1>
     raptor-cage
   </h1>
@@ -44,7 +45,7 @@ sudo install -Dm755 raptor-cage "/usr/local/bin/rcage"
 rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b game.exe
 
 # Run native binary, and pass custom parameters.
-rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b native_binary -- --param1
+rcage run -d ~/games/some_game -b native_binary -- --param1
 
 # Mount game path as read-write, mount installer path as read-only, then start interactive shell.
 rcage run -r soda-9.0-1 -p my_prefix  -d ~/games/some_game:rw -v ~/installers:/installers:
@@ -114,7 +115,7 @@ cargo upgrade --dry-run
 * Native wayland support, see https://www.phoronix.com/news/Wine-9.22-Released and https://wiki.archlinux.org/title/Wine#Wayland. Also consider bringing back `--unshare-ipc` if using Wayland prevents the issue described in bwrap.rs#90.
 * Add `kill` sub-command to terminate all processes in a sandbox, need to connect to existing bwrap container.
 * When using the `integrate` sub-command to create a `.desktop` shortcut, extract executable icon and set it respectively. It can be done with a small windows executable calling a win32 API call or natively on Linux by using `wrestool`.
-* Add NTSYNC support, see also https://www.phoronix.com/news/Linux-6.14-NTSYNC-Driver-Ready.
+* Add NTSYNC support, see also https://www.phoronix.com/news/Linux-6.14-Char-Misc-NTSYNC.
 
 #### Packaging
 
