@@ -142,14 +142,24 @@ impl LaunchParams {
       app_args: app_args.unwrap_or(vec![]),
     }
   }
+
+  pub fn is_windows_binary(&self) -> bool {
+    match self {
+      LaunchParams::Configured {
+        app_bin: Some(app_bin),
+        ..
+      } => app_bin.ends_with(".exe"),
+      _ => false,
+    }
+  }
 }
 
 // TODO: detect GPUs and configure environment to use the dedicated GPU, currently bottles uses
 // lspci and grep, however it does not seem to work in many scenarios. See
 // https://github.com/bottlesdevs/Bottles/blob/540f6fc0d4c2853e2a62cab98548ce3210c7352a/bottles/backend/utils/gpu.py.
 pub struct LaunchConfig {
-  pub runner_path: PathBuf,
-  pub prefix_path: PathBuf,
+  pub runner_path: Option<PathBuf>,
+  pub prefix_path: Option<PathBuf>,
   /// Application to execute inside the sandbox, if not set, a shell will be started instead.
   pub launch_params: LaunchParams,
   /// Optional upscale mode (needs to be supported by the runner).
@@ -160,23 +170,25 @@ pub struct LaunchConfig {
 
 impl LaunchConfig {
   pub fn new(
-    runner_path: PathBuf,
-    prefix_path: PathBuf,
+    runner_path: Option<PathBuf>,
+    prefix_path: Option<PathBuf>,
     launch_params: Option<LaunchParams>,
     upscale_mode: Option<UpscaleMode>,
     sync_mode: Option<SyncMode>,
   ) -> anyhow::Result<Self> {
-    let data_root = bottles::get_data_root()?;
-    let runner_path = if runner_path.is_absolute() {
-      runner_path
+    let data_root: Option<PathBuf> = if runner_path.is_some() || prefix_path.is_some() {
+      Some(bottles::get_data_root()?)
     } else {
-      data_root.join("runners").join(runner_path)
+      None
     };
-    let prefix_path = if prefix_path.is_absolute() {
-      prefix_path
-    } else {
-      data_root.join("bottles").join(prefix_path)
-    };
+    let runner_path = runner_path.map(|path| match &data_root {
+      Some(data_root) if !path.is_absolute() => data_root.join("runners").join(path),
+      _ => path,
+    });
+    let prefix_path = prefix_path.map(|path| match &data_root {
+      Some(data_root) if !path.is_absolute() => data_root.join("bottles").join(path),
+      _ => path,
+    });
     Ok(LaunchConfig {
       runner_path,
       prefix_path,

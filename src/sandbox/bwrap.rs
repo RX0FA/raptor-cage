@@ -3,46 +3,15 @@ use super::mount::MountMapping;
 use super::sandbox::{
   DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig,
 };
+use super::sandbox_config::{
+  current_timestamp_hex, find_nvidia_devices, INNER_APP_DIR, INNER_WINE_PREFIX, INNER_WINE_ROOT,
+};
 use super::wine::{SyncMode, UpscaleMode};
 use anyhow::Context;
 use std::env;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::{
-  fs,
-  os::unix::fs::FileTypeExt,
-  process::{Command, Stdio},
-};
+use std::process::{Command, Stdio};
 use tempfile::NamedTempFile;
-
-fn current_timestamp_hex() -> String {
-  let start = SystemTime::now();
-  let since_epoch = start.duration_since(UNIX_EPOCH).unwrap();
-  let seconds = since_epoch.as_secs();
-  format!("{:x}", seconds)
-}
-
-fn find_nvidia_devices() -> anyhow::Result<Vec<String>> {
-  let mut nvidia_devices = Vec::new();
-  let entries = fs::read_dir("/dev")?;
-  for entry in entries.flatten() {
-    let path = entry.path();
-    let metadata = path.metadata()?;
-    if metadata.file_type().is_char_device() {
-      let file_name = path
-        .file_name()
-        .unwrap_or_default()
-        .to_str()
-        .unwrap_or_default();
-      if file_name.starts_with("nvidia") {
-        if let Some(path_str) = path.to_str() {
-          nvidia_devices.push(path_str.to_string());
-        }
-      }
-    }
-  }
-  Ok(nvidia_devices)
-}
 
 /// Gets the corresponding bwrap parameters for the selected DeviceAccess option.
 pub fn get_device_args(device_access: &DeviceAccess) -> anyhow::Result<Vec<String>> {
@@ -83,10 +52,6 @@ fn get_mount_args(mount_mappings: &[MountMapping]) -> Vec<String> {
   }
   args
 }
-
-const INNER_WINE_ROOT: &str = "/opt/wine";
-const INNER_WINE_PREFIX: &str = "/var/lib/wine";
-const INNER_APP_DIR: &str = "/app";
 
 fn build_args(
   sandbox_config: &SandboxConfig,
@@ -209,26 +174,24 @@ fn build_args(
   // Mount the directory that contains the Wine binaries and libraries (a.k.a. runner), the Wine
   // version to be mounted must be statically compiled in order to not rely on any host library
   // i.e. the runners downloaded by Bottles are statically compiled.
-  args.extend([
-    "--tmpfs",
-    "/opt",
-    "--ro-bind",
-    launch_config
-      .runner_path
-      .to_str()
-      .context("bad runner path")?,
-    INNER_WINE_ROOT,
-  ]);
+  if let Some(runner_path) = &launch_config.runner_path {
+    args.extend([
+      "--tmpfs",
+      "/opt",
+      "--ro-bind",
+      runner_path.to_str().context("bad runner path")?,
+      INNER_WINE_ROOT,
+    ]);
+  }
   // Prefix needs to be read-write because some dependencies may be installed or system files change
   // while wine is running, even changing the registry requires write access.
-  args.extend([
-    "--bind",
-    launch_config
-      .prefix_path
-      .to_str()
-      .context("bad prefix path")?,
-    INNER_WINE_PREFIX,
-  ]);
+  if let Some(prefix_path) = &launch_config.prefix_path {
+    args.extend([
+      "--bind",
+      prefix_path.to_str().context("bad prefix path")?,
+      INNER_WINE_PREFIX,
+    ]);
+  }
   // Mount X11 socket to allow running GUI apps. Using the same X11 display number as the host
   // because using a different number will not work despite being the first recommendation in the
   // ArchWiki: https://wiki.archlinux.org/title/Bubblewrap#Using_X11.
@@ -402,7 +365,7 @@ fn build_args(
         let bin_path = bin_buf
           .to_str()
           .with_context(|| format!("invalid path: {}", bin_buf.to_string_lossy()))?;
-        if bin_path.ends_with(".exe") {
+        if launch_config.launch_params.is_windows_binary() {
           final_args.push("wine".into());
         }
         final_args.push(bin_path.into());

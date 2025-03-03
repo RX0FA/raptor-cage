@@ -27,12 +27,15 @@ pub fn run(
   verbose: bool,
   upscale_mode: UpscaleMode,
   sync_mode: SyncMode,
-  runner_path: PathBuf,
-  prefix_path: PathBuf,
+  runner_path: Option<PathBuf>,
+  prefix_path: Option<PathBuf>,
   app_dir: Option<String>,
   app_bin: Option<String>,
   app_args: Option<Vec<String>>,
 ) -> anyhow::Result<()> {
+  if runner_path.as_ref().xor(prefix_path.as_ref()).is_some() {
+    anyhow::bail!("either both runner and prefix paths are required, or neither");
+  }
   let sandbox_config = SandboxConfig {
     namespace_isolation: !no_namespace_isolation,
     user_mapping,
