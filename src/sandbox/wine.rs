@@ -15,9 +15,9 @@ pub enum UpscaleModeError {
 impl fmt::Display for UpscaleModeError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      UpscaleModeError::InvalidUpscaleMode(s) => write!(f, "invalid upscale mode: {}", s),
-      UpscaleModeError::InvalidFsrMode(s) => write!(f, "invalid FSR mode: {}", s),
-      UpscaleModeError::InvalidFsrStrength(s) => write!(f, "invalid FSR strength: {}", s),
+      UpscaleModeError::InvalidUpscaleMode(s) => write!(f, "Invalid upscale mode: {}", s),
+      UpscaleModeError::InvalidFsrMode(s) => write!(f, "Invalid FSR mode: {}", s),
+      UpscaleModeError::InvalidFsrStrength(s) => write!(f, "Invalid FSR strength: {}", s),
       UpscaleModeError::OutOfRangeFsrStrength(strength) => write!(
         f,
         "FSR strength must be between {} and {}, but got {}",
@@ -126,14 +126,16 @@ impl FromStr for UpscaleMode {
 
 /// Configures how synchronization operations are done, it may affect CPU
 /// performance and game compatibility. Do **NOT** confuse with VSync.
-/// See a more complete explanation at
+/// TL;DR: Fsync and Ntsync yield similar performance (according to Valve),
+/// only Ntsync is available on upstream Wine (Wine 10+ and kernel 6.14+), Fsync
+/// does not need a newer kernel and is available in Proton and other variants.
 /// https://github.com/lutris/lutris/wiki/How-to:-Esync/be48f27a4112271d0eb7c42eb14b57cea022f8c6.
 /// https://github.com/Frogging-Family/wine-tkg-git/issues/936.
 /// TODO: as of 2024-08 the latest and greatest option seems to be NTsync. It seems to require an
 /// additional /dev/... mount, see https://www.phoronix.com/news/Linux-6.10-Merging-NTSYNC.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SyncMode {
-  /// Will use the runner default.
+  /// Will use the runner's default.
   None,
   /// Preferred over Esync, this is the default for the soda runner (as of 2024-08).
   Fsync,
@@ -148,7 +150,7 @@ impl FromStr for SyncMode {
       "none" => Ok(SyncMode::None),
       "fsync" => Ok(SyncMode::Fsync),
       "esync" => Ok(SyncMode::Esync),
-      _ => Err(format!("invalid sync mode: {}", s)),
+      _ => Err(format!("Invalid sync mode: {}", s)),
     }
   }
 }

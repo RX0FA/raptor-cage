@@ -1,23 +1,27 @@
-use crate::sandbox::{
-  bwrap,
-  mount::{MountConfig, MountMapping},
-  sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
-  user_mapping::UserMapping,
-  wine::{SyncMode, UpscaleMode},
+use crate::{
+  inhibitor,
+  sandbox::{
+    bwrap,
+    mount::{MountConfig, MountMapping},
+    sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
+    user_mapping::UserMapping,
+    wine::{SyncMode, UpscaleMode},
+  },
 };
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
+// TODO: deny "/" and other important dirs.
 fn parse_mappings(volumes: &[String]) -> anyhow::Result<Vec<MountMapping>> {
   let mut mappings: Vec<MountMapping> = Vec::with_capacity(volumes.len());
   for volume in volumes {
     let mapping =
-      MountMapping::from_str(volume).map_err(|e| anyhow::anyhow!("volume error: {}", e))?;
+      MountMapping::from_str(volume).map_err(|e| anyhow::anyhow!("Volume error: {}", e))?;
     mappings.push(mapping);
   }
   Ok(mappings)
 }
 
-pub fn run(
+pub async fn run(
   environment: &[String],
   volumes: &[String],
   no_namespace_isolation: bool,
@@ -34,7 +38,7 @@ pub fn run(
   app_args: Option<Vec<String>>,
 ) -> anyhow::Result<()> {
   if runner_path.as_ref().xor(prefix_path.as_ref()).is_some() {
-    anyhow::bail!("either both runner and prefix paths are required, or neither");
+    anyhow::bail!("Either both runner and prefix paths are required, or neither");
   }
   let sandbox_config = SandboxConfig {
     namespace_isolation: !no_namespace_isolation,
@@ -71,10 +75,11 @@ pub fn run(
   let mut runtime_env = RuntimeEnv::from_env()?;
   runtime_env.overrides = Some(env_overrides);
   let mount_mappings = parse_mappings(volumes)?;
-  bwrap::run(
-    &sandbox_config,
-    &launch_config,
-    &runtime_env,
-    &mount_mappings,
-  )
+  // Inhibit the system so screen does not dim while running a game, inhibition will be
+  // automatically released when inhibit_handle is dropped.
+  let inhibit_handle = inhibitor::inhibit_idle().await;
+  if let Err(inhibit_error) = &inhibit_handle {
+    println!("Inhibition failed: {}", inhibit_error.to_string());
+  }
+  bwrap::run(&sandbox_config, &launch_config, &runtime_env, &mount_mappings)
 }

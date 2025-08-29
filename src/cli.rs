@@ -65,7 +65,7 @@ pub enum Commands {
 }
 
 #[derive(Debug, Parser)]
-#[command(about = "Run games in a secure sandbox", long_about = None)]
+#[command(about = env!("CARGO_PKG_DESCRIPTION"), long_about = None)]
 pub struct Cli {
   #[command(subcommand)]
   pub command: Commands,
