@@ -15,6 +15,8 @@
 
 ### ArchLinux
 
+> ⚠️ It's recommended to have multilib enabled on `pacman.conf`
+
 ```bash
 # Using paru.
 paru -S raptor-cage-bin
@@ -93,6 +95,12 @@ rcage run -r soda-9.0-1 -p my_prefix  -d ~/games/some_game:rw -v ~/installers:/i
 * Do I still need `steam-native-runtime` on Manjaro?  
   Yes, even though Manjaro includes more dependencies than regular ArchLinux (which helps in many cases), if `steam-native-runtime` is not installed, there will still be some games that will just freeze with no explanation, or sometimes Wine/Proton will report that a dependency (like `libvulkan1.so`) is missing despite that not being the case.
 
+## 🔥 Troubleshooting
+
+> Recommended read https://wiki.archlinux.org/title/Steam/Troubleshooting#Steam:_An_X_Error_occurred
+
+* **failed to load driver: nouveau:** make sure to have 32-bit libraries installed i.e., `lib32-nvidia-utils`
+
 ## ⚙️ Development
 
 ### Maintenance
@@ -101,7 +109,10 @@ rcage run -r soda-9.0-1 -p my_prefix  -d ~/games/some_game:rw -v ~/installers:/i
 # Check for dependency vulnerabilities.
 cargo audit
 
-# Check for updates.
+# Perform minor dependency updates (Cargo.lock).
+cargo update
+
+# Check for updates (Cargo.toml).
 cargo upgrade --dry-run
 ```
 
@@ -110,12 +121,31 @@ cargo upgrade --dry-run
 #### General
 
 * Some games (like HC2, DXM) create a detached sub-process, since we are using `--die-with-parent`, said games will not run when executed directly (with `-b` parameter, executing a shell and launching manually still works); so we need to think in a way to detect child processes and wait for them, or at least add a flag to enable this feature. Disabling `--die-with-parent` is another option, but that would undermine security a bit and leave lingering wine processes all over the place. Maybe add a `--lead-process=NAME_EXE:TIMEOUT` to wait for another process inside the sandbox.
+* Test under pure Wine 64-bit (see https://archlinux.org/news/transition-to-the-new-wow64-wine-and-wine-staging/ and https://gitlab.winehq.org/wine/wine/-/releases/wine-9.0#wow64)
 * Implement bash autocompletion, should be able to autocomplete prefix and runner names based on the ones detected under Bottles. Also consider using [clap_complete](https://crates.io/crates/clap_complete).
 * Add `integrate` sub-command to create integrations e.g., `.desktop` shortcut, entry on Heroic launcher.
 * Native wayland support, see https://www.phoronix.com/news/Wine-9.22-Released and https://wiki.archlinux.org/title/Wine#Wayland. Also consider bringing back `--unshare-ipc` if using Wayland prevents the issue described in bwrap.rs#90.
 * Add `kill` sub-command to terminate all processes in a sandbox, need to connect to existing bwrap container.
 * When using the `integrate` sub-command to create a `.desktop` shortcut, extract executable icon and set it respectively. It can be done with a small windows executable calling a win32 API call or natively on Linux by using `wrestool`.
 * Add NTSYNC support, see also https://www.phoronix.com/news/Linux-6.14-Char-Misc-NTSYNC.
+* Add `--gpu` param (enum with default) to force dedicated GPU, see also:
+  * https://wiki.archlinux.org/title/PRIME#Configure_applications_to_render_using_GPU
+  * https://download.nvidia.com/XFree86/Linux-x86_64/435.17/README/primerenderoffload.html
+  * https://wiki.manjaro.org/index.php/Configure_Graphics_Cards
+  * https://wiki.archlinux.org/title/Hybrid_graphics
+  * https://wiki.archlinux.org/title/PRIME#Note_about_Windows_games
+* Detect dedicated GPU and enable `--gpu` param automatically
+
+| Environment Variable      | Purpose                                                      | Typical Values                        | Affects                              | Notes                                                                                          |
+|---------------------------|--------------------------------------------------------------|---------------------------------------|--------------------------------------|------------------------------------------------------------------------------------------------|
+| DRI_PRIME                 | Selects which GPU to use for rendering (in Mesa/DRI stack)   | 0 (default GPU), 1 (dGPU)             | Which GPU handles rendering          | Used mostly on systems using the Mesa driver; 1 for discrete GPU rendering.                    |
+| __NV_PRIME_RENDER_OFFLOAD | Enables NVIDIA's PRIME render offload mode                   | 1                                     | Activates NVIDIA render offload mode | Must be set to 1 to use NVIDIA GPU for rendering in hybrid setups.                             |
+| __GLX_VENDOR_LIBRARY_NAME | Specifies which GLX vendor library to load (GLX client side) | nvidia, mesa                          | Determines which GLX implementation  | Should be nvidia for NVIDIA offload; mesa for default integrated GPU. Required for proper GLX. |
+| __VK_LAYER_NV_optimus     | Ensures Vulkan applications use the correct GPU              | (empty), NVIDIA_only, non_NVIDIA_only | Vulkan applications                  | A value of NVIDIA_only causes to only report NVIDIA GPUs to the Vulkan application.            |
+| DXVK_FILTER_DEVICE_NAME   | Set the GPU used by DXVK                                     | (empty), (device_name)                | Games ran by DXVK                    | Get the card name from vulkaninfo; DXVK uses substring match.                                  |
+
+* Test with `DRI_PRIME=1 glxinfo | grep -E "OpenGL (vendor|renderer)"`, bear in mind that GPU may be powered-off on the first time, subsequent launches should be faster
+* The `prime-run` command is just a script that sets the aforementioned variables: https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-prime/-/blob/main/prime-run?ref_type=heads
 
 #### Packaging
 

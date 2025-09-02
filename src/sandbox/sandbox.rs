@@ -26,7 +26,7 @@ impl FromStr for NetworkMode {
       "full_access" | "full" | "f" => Ok(NetworkMode::FullAccess),
       "restricted_access" | "restricted" | "r" => Ok(NetworkMode::RestrictedAccess),
       "no_access" | "no" | "n" => Ok(NetworkMode::NoAccess),
-      _ => Err(format!("invalid network mode: {}", s)),
+      _ => Err(format!("Invalid network mode: {}", s)),
     }
   }
 }
@@ -45,13 +45,13 @@ impl FromStr for DeviceAccess {
     match s.to_lowercase().as_str() {
       "all" | "a" => Ok(DeviceAccess::All),
       "minimal" | "m" => Ok(DeviceAccess::Minimal),
-      _ => Err(format!("invalid device access mode: {}", s)),
+      _ => Err(format!("Invalid device access mode: {}", s)),
     }
   }
 }
 
 fn get_env_var(name: &str) -> anyhow::Result<String> {
-  env::var(name).with_context(|| format!("failed to read environment variable: {}", name))
+  env::var(name).with_context(|| format!("Failed to read environment variable: {}", name))
 }
 
 // TODO: as of 2024-09 Wine Wayland is not finished, add the necessary args when it gets shipped
