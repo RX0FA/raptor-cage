@@ -1,4 +1,4 @@
-FROM rust:1.83.0-slim-bullseye
+FROM rust:1.89.0-slim-bookworm
 RUN useradd -m -d /builder -s /bin/bash builder
 USER builder
 WORKDIR /builder
