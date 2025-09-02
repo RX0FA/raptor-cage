@@ -4,7 +4,7 @@ use super::sandbox::{
   DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig,
 };
 use super::sandbox_config::{
-  current_timestamp_hex, find_nvidia_devices, INNER_APP_DIR, INNER_WINE_PREFIX, INNER_WINE_ROOT,
+  INNER_APP_DIR, INNER_WINE_PREFIX, INNER_WINE_ROOT, current_timestamp_hex, find_nvidia_devices,
 };
 use super::wine::{SyncMode, UpscaleMode};
 use anyhow::Context;
@@ -104,16 +104,21 @@ fn build_args(
     "/usr/lib",
     "/lib",
   ]);
-  // Need to bind /run because it allows D-Bus to work (needed for some gamepads), and /sys to
-  // provide access to kernel and hardware information.
+  // Need to bind /run because it allows D-Bus to work, also some apps that directly or indirectly
+  // rely on libudev may fail to access devices like gamepads if /run/udev/data is not accessible.
   // Binding /run works but it exposes more than we need, so only bind D-Bus related paths,
   // i.e. sandboxed apps shouldn't be able to run "DOCKER_HOST=unix:///run/docker.sock docker ps",
   // the aforementioned command works even if --ro-bind was used.
-  // TODO: check if more paths are needed, and if they could be restricted even further.
+  // Access to /sys is needed for apps to be able to retrieve kernel and hardware information.
   args.extend([
     "--ro-bind",
     "/run/dbus",
     "/run/dbus",
+    "--ro-bind",
+    // TODO: investigate "0090:err:hid:udev_bus_init UDEV monitor creation failed" errors. Happens
+    // with wine-ge-proton8-26.
+    "/run/udev/data",
+    "/run/udev/data",
     "--ro-bind",
     "/run/user",
     "/run/user",
@@ -131,6 +136,10 @@ fn build_args(
     "--ro-bind",
     empty_file_path,
     "/etc/hostname",
+    // Application shared data e.g., "/usr/share/vulkan/icd.d".
+    "--ro-bind",
+    "/usr/share",
+    "/usr/share",
   ]);
   // Setup networking, the bwrap default is enabled, our default will be to have it disabled.
   match sandbox_config.network_mode {
@@ -200,6 +209,8 @@ fn build_args(
   args.extend([
     "--tmpfs",
     "/tmp",
+    "--tmpfs",
+    "/dev/shm",
     "--bind",
     &x11_socket,
     &x11_socket,
@@ -364,7 +375,7 @@ fn build_args(
         let bin_buf = PathBuf::from(INNER_APP_DIR).join(app_bin);
         let bin_path = bin_buf
           .to_str()
-          .with_context(|| format!("invalid path: {}", bin_buf.to_string_lossy()))?;
+          .with_context(|| format!("Invalid path: {}", bin_buf.to_string_lossy()))?;
         if launch_config.launch_params.is_windows_binary() {
           final_args.push("wine".into());
         }
@@ -398,23 +409,18 @@ pub fn run(
   let temp_file_path = temp_file
     .path()
     .to_str()
-    .context("could not get temporary file path")?;
-  let args = build_args(
-    sandbox_config,
-    launch_config,
-    runtime_env,
-    mount_mappings,
-    temp_file_path,
-  )?;
+    .context("Could not get temporary file path")?;
+  let args =
+    build_args(sandbox_config, launch_config, runtime_env, mount_mappings, temp_file_path)?;
   let mut cmd = Command::new("bwrap")
     .args(args)
     .stdout(Stdio::inherit())
     .stderr(Stdio::inherit())
     .spawn()
-    .map_err(|e| anyhow::anyhow!("could not spawn bwrap: {}", e))?;
+    .map_err(|e| anyhow::anyhow!("Could not spawn bwrap: {}", e))?;
   let status = cmd.wait()?;
   if status.success() {
     return Ok(());
   }
-  Err(anyhow::anyhow!("bwrap exited with non-zero exit code"))
+  Err(anyhow::anyhow!("The bwrap command exited with non-zero exit code"))
 }
