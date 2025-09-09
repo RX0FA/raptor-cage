@@ -114,11 +114,12 @@ fn build_args(
     "--ro-bind",
     "/run/dbus",
     "/run/dbus",
-    "--ro-bind",
+    // TODO: need more testing to see if mounting /run/udev/data makes a meaningful difference, this
+    // requires to unset SDL_JOYSTICK_DISABLE_UDEV, a game that has gamepad issues and said gamepad
+    // issues not to be related to Steam Input. The expected result is to have a previously
+    // non-working gamepad working and to have gamepad hotplugging unaffected.
     // TODO: investigate "0090:err:hid:udev_bus_init UDEV monitor creation failed" errors. Happens
     // with wine-ge-proton8-26.
-    "/run/udev/data",
-    "/run/udev/data",
     "--ro-bind",
     "/run/user",
     "/run/user",
@@ -225,6 +226,9 @@ fn build_args(
     "--setenv",
     "HOME",
     &runtime_env.home_dir,
+    "--setenv",
+    "USER",
+    &runtime_env.user_name,
     "--setenv",
     "XAUTHORITY",
     &runtime_env.xauthority_file,

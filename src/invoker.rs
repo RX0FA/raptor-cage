@@ -5,7 +5,7 @@ use crate::{
     mount::{MountConfig, MountMapping},
     sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
     user_mapping::UserMapping,
-    wine::{SyncMode, UpscaleMode},
+    wine::{SyncMode, UpscaleMode, get_wine_user},
   },
 };
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
@@ -73,6 +73,13 @@ pub async fn run(
     })
     .collect();
   let mut runtime_env = RuntimeEnv::from_env()?;
+  if let Some(wine_prefix) = &launch_config.prefix_path {
+    // Need to set current user because some games rely on this variable to build the save/config
+    // path. If not set, the behavior depends on the game, common symptoms include saving data to
+    // the root path (e.g., "/My Games"), silently failing to save settings or broken UI.
+    let wine_user = get_wine_user(&wine_prefix, &runtime_env.user_name)?;
+    runtime_env.user_name = wine_user;
+  }
   runtime_env.overrides = Some(env_overrides);
   let mount_mappings = parse_mappings(volumes)?;
   // Inhibit the system so screen does not dim while running a game, inhibition will be

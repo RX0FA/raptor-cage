@@ -11,6 +11,12 @@
   <img alt="AUR" src="https://img.shields.io/aur/version/raptor-cage-bin?style=flat-square&label=AUR&labelColor=0567ff&color=696969" />
 </div>
 
+## 🤔 Why Should I Sandbox My Games?
+
+* Developers sometimes make mistakes or forget about security.
+* Even careful developers can be affected by threats in the tools they use (i.e., supply-chain attacks).
+* Many games include tracking or data collection, even at the engine level.
+
 ## ⬇️ Installation
 
 ### ArchLinux
