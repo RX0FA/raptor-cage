@@ -42,6 +42,14 @@ pub enum Commands {
     /// Configure Wine sync mode.
     #[arg(long, value_name = "MODE", default_value = "none", value_parser)]
     sync_mode: SyncMode,
+    /// Process names to wait for before exiting.
+    #[arg(
+      short = 'w',
+      long = "process-names",
+      value_name = "NAMES",
+      value_delimiter = ','
+    )]
+    process_names: Option<Vec<String>>,
     /// Path of the Wine runner.
     #[arg(short, long = "runner", value_name = "PATH")]
     runner_path: Option<PathBuf>,
@@ -54,13 +62,29 @@ pub enum Commands {
     /// Path of the executable file relative to appdir.
     #[arg(short = 'b', long = "appbin", value_name = "BIN")]
     app_bin: Option<String>,
-    /// Optional game arguments, need to be placed after a double dash.
+    /// Optional game arguments, need to be placed after double dash.
     app_args: Option<Vec<String>>,
   },
   /// List installed runners and prefixes.
   List {
     #[arg(long, value_name = "CATEGORY", default_value = "all", value_parser)]
     category: Category,
+  },
+  /// Runs a process then waits for one or more processes to stop.
+  Wait {
+    /// Waits for all comma-separated processes to exit.
+    #[arg(
+      short = 'w',
+      long,
+      value_name = "NAMES",
+      value_delimiter = ',',
+      required = true
+    )]
+    process_names: Vec<String>,
+    /// Program to launch (usually "wine").
+    program: String,
+    /// Optional program arguments, need to be placed after double dash.
+    args: Option<Vec<String>>,
   },
 }
 

@@ -31,6 +31,7 @@ pub async fn run(
   verbose: bool,
   upscale_mode: UpscaleMode,
   sync_mode: SyncMode,
+  process_names: Option<Vec<String>>,
   runner_path: Option<PathBuf>,
   prefix_path: Option<PathBuf>,
   app_dir: Option<String>,
@@ -47,17 +48,14 @@ pub async fn run(
     device_access,
     verbose,
   };
-  let launch_params = if let Some(app_dir) = app_dir {
-    let mount_config = MountConfig::from_str(&app_dir).map_err(|e| anyhow::anyhow!("{}", e))?;
-    Some(LaunchParams::configured(
-      !mount_config.writable,
-      mount_config.path.to_string_lossy().to_string(),
-      app_bin,
-      app_args,
-    ))
+  let (app_dir, read_only) = if let Some(dir) = app_dir {
+    let mount_config = MountConfig::from_str(&dir).map_err(|e| anyhow::anyhow!("{}", e))?;
+    (Some(mount_config.path.to_string_lossy().to_string()), !mount_config.writable)
   } else {
-    Some(LaunchParams::Unconfigured)
+    (None, true)
   };
+  let launch_params =
+    LaunchParams::from_options(read_only, app_dir, app_bin, app_args, process_names);
   let launch_config = LaunchConfig::new(
     runner_path,
     prefix_path,
