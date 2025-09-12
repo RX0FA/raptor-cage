@@ -180,3 +180,42 @@ pub fn get_wine_user(wine_prefix: &Path, fallback_user: &str) -> io::Result<Stri
   }
   Ok(fallback_user.to_string())
 }
+
+pub fn is_windows_binary<P: AsRef<Path>>(app_bin: P) -> bool {
+  app_bin
+    .as_ref()
+    .extension()
+    .map_or(false, |ext| ext.eq_ignore_ascii_case("exe"))
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_exe_extensions() {
+    assert!(is_windows_binary("program.exe"));
+    assert!(is_windows_binary("program.EXE"));
+    assert!(is_windows_binary("program.ExE"));
+    assert!(is_windows_binary("program.eXe"));
+  }
+
+  #[test]
+  fn test_non_exe_extensions() {
+    assert!(!is_windows_binary("program.txt"));
+    assert!(!is_windows_binary("program.bin"));
+  }
+
+  #[test]
+  fn test_files_with_no_extension() {
+    assert!(!is_windows_binary("program"));
+    assert!(!is_windows_binary(".hiddenfile"));
+    assert!(!is_windows_binary(Path::new("/usr/bin/bash")));
+  }
+
+  #[test]
+  fn test_weird_extensions() {
+    assert!(!is_windows_binary("file.exe.backup"));
+    assert!(is_windows_binary("file.with.many.dots.exe"));
+  }
+}

@@ -1,6 +1,6 @@
 use super::bottles;
 use super::user_mapping::UserMapping;
-use super::wine::{SyncMode, UpscaleMode};
+use super::wine::{SyncMode, UpscaleMode, is_windows_binary};
 use anyhow::Context;
 use std::collections::HashMap;
 use std::env;
@@ -50,6 +50,8 @@ impl FromStr for DeviceAccess {
   }
 }
 
+/// Retrieves an env variable and maps the error if not found, the difference between this method
+/// and using directly env::var is that this method mentions the variable name that was not found.
 fn get_env_var(name: &str) -> anyhow::Result<String> {
   env::var(name).with_context(|| format!("Failed to read environment variable: {}", name))
 }
@@ -59,6 +61,7 @@ fn get_env_var(name: &str) -> anyhow::Result<String> {
 pub struct RuntimeEnv {
   pub home_dir: String,
   pub user_name: String,
+  pub lang: String,
   pub dbus_session_bus_address: String,
   pub xdg_runtime_dir: String,
   /// Represents the unmodified value of the PATH variable.
@@ -76,6 +79,7 @@ impl RuntimeEnv {
   pub fn from_env() -> anyhow::Result<Self> {
     let home_dir = get_env_var("HOME")?;
     let user_name = get_env_var("USER")?;
+    let lang = env::var("LANG").unwrap_or("en_US.UTF-8".to_owned());
     let dbus_session_bus_address = get_env_var("DBUS_SESSION_BUS_ADDRESS")?;
     let xdg_runtime_dir = get_env_var("XDG_RUNTIME_DIR")?;
     let original_path = get_env_var("PATH")?;
@@ -84,6 +88,7 @@ impl RuntimeEnv {
     Ok(Self {
       home_dir,
       user_name,
+      lang,
       dbus_session_bus_address,
       xdg_runtime_dir,
       original_path,
@@ -121,38 +126,79 @@ impl Default for SandboxConfig {
   }
 }
 
+fn map_wine_app(app_bin: String, app_args: Option<Vec<String>>) -> (String, Vec<String>) {
+  if !is_windows_binary(&app_bin) {
+    return (app_bin, app_args.unwrap_or_default());
+  }
+  let new_args: Vec<String> = if let Some(mut args) = app_args {
+    args.insert(0, app_bin);
+    args
+  } else {
+    vec![app_bin]
+  };
+  return ("wine".to_string(), new_args);
+}
+
+fn map_wait_command(
+  app_bin: String,
+  app_args: Vec<String>,
+  process_names: Option<Vec<String>>,
+) -> (String, Vec<String>) {
+  match process_names {
+    Some(process_names) => {
+      let current_exe = std::env::current_exe()
+        .ok()
+        .map(|path| path.to_string_lossy().to_string())
+        .expect("Failed to get executable name");
+      let mut new_args: Vec<String> = vec![
+        "wait".into(),
+        "-w".into(),
+        process_names.join(","),
+        app_bin,
+        "--".into(),
+      ];
+      new_args.extend(app_args);
+      (current_exe, new_args)
+    }
+    None => (app_bin, app_args),
+  }
+}
+
 pub enum LaunchParams {
+  /// The root directory will be mounted without any app directory.
   Unconfigured,
-  Configured {
+  /// Only the app directory is mounted; no command will be executed.
+  AppDirOnly { read_only: bool, app_dir: String },
+  /// App directory is mounted and specified command will be executed.
+  AppDirWithCommand {
     read_only: bool,
     app_dir: String,
-    app_bin: Option<String>,
+    app_bin: String,
     app_args: Vec<String>,
   },
 }
 
 impl LaunchParams {
-  pub fn configured(
+  pub fn from_options(
     read_only: bool,
-    app_dir: String,
+    app_dir: Option<String>,
     app_bin: Option<String>,
     app_args: Option<Vec<String>>,
+    process_names: Option<Vec<String>>,
   ) -> Self {
-    LaunchParams::Configured {
+    let Some(app_dir) = app_dir else {
+      return LaunchParams::Unconfigured;
+    };
+    let Some(app_bin) = app_bin else {
+      return LaunchParams::AppDirOnly { read_only, app_dir };
+    };
+    let (bin, args) = map_wine_app(app_bin, app_args);
+    let (bin, args) = map_wait_command(bin, args, process_names);
+    LaunchParams::AppDirWithCommand {
       read_only,
       app_dir,
-      app_bin,
-      app_args: app_args.unwrap_or(vec![]),
-    }
-  }
-
-  pub fn is_windows_binary(&self) -> bool {
-    match self {
-      LaunchParams::Configured {
-        app_bin: Some(app_bin),
-        ..
-      } => app_bin.ends_with(".exe"),
-      _ => false,
+      app_bin: bin,
+      app_args: args,
     }
   }
 }
@@ -177,7 +223,7 @@ impl LaunchConfig {
   pub fn new(
     runner_path: Option<PathBuf>,
     prefix_path: Option<PathBuf>,
-    launch_params: Option<LaunchParams>,
+    launch_params: LaunchParams,
     upscale_mode: Option<UpscaleMode>,
     sync_mode: Option<SyncMode>,
   ) -> anyhow::Result<Self> {
@@ -197,7 +243,7 @@ impl LaunchConfig {
     Ok(LaunchConfig {
       runner_path,
       prefix_path,
-      launch_params: launch_params.unwrap_or(LaunchParams::Unconfigured),
+      launch_params,
       upscale_mode,
       sync_mode,
     })

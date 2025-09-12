@@ -9,7 +9,6 @@ use super::sandbox_config::{
 use super::wine::{SyncMode, UpscaleMode};
 use anyhow::Context;
 use std::env;
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use tempfile::NamedTempFile;
 
@@ -51,6 +50,22 @@ fn get_mount_args(mount_mappings: &[MountMapping]) -> Vec<String> {
     args.extend(vec![bind_param.into(), source.into(), target.into()]);
   }
   args
+}
+
+fn get_app_dir_args(read_only: bool, app_dir: String) -> Vec<String> {
+  // Most games can work without issues when mounted as read-only. This also prevents polluting
+  // the game directory. Also, setting the working directory is important for many games.
+  vec![
+    if read_only {
+      "--ro-bind".into()
+    } else {
+      "--bind".into()
+    },
+    app_dir,
+    INNER_APP_DIR.into(),
+    "--chdir".into(),
+    INNER_APP_DIR.into(),
+  ]
 }
 
 fn build_args(
@@ -221,6 +236,8 @@ fn build_args(
   ]);
   // Clear env and set minimal required variables, we need to make sure that all needed variables
   // are being passed otherwise games may crash or have no sound.
+  // The USER and LANG variables are needed for some games in order to be able to save settings and
+  // progress, if not set, the affected game may behave strangely.
   args.extend([
     "--clearenv",
     "--setenv",
@@ -229,6 +246,9 @@ fn build_args(
     "--setenv",
     "USER",
     &runtime_env.user_name,
+    "--setenv",
+    "LANG",
+    &runtime_env.lang,
     "--setenv",
     "XAUTHORITY",
     &runtime_env.xauthority_file,
@@ -356,39 +376,22 @@ fn build_args(
       final_args.extend(["--chdir".into(), "/".into()]);
       final_args.extend(shell_params);
     }
-    LaunchParams::Configured {
+    LaunchParams::AppDirOnly { read_only, app_dir } => {
+      let app_dir_args = get_app_dir_args(*read_only, app_dir.to_owned());
+      final_args.extend(app_dir_args);
+      // Only app_dir was set (not app_bin), so start with default shell (useful for maintenance).
+      final_args.extend(shell_params);
+    }
+    LaunchParams::AppDirWithCommand {
       read_only,
       app_dir,
       app_bin,
       app_args,
     } => {
-      // Most games can work without issues when mounted as read-only. This also prevents polluting
-      // the game directory. Also, setting the working directory is important for many games.
-      final_args.extend([
-        if *read_only {
-          "--ro-bind".into()
-        } else {
-          "--bind".into()
-        },
-        app_dir.into(),
-        INNER_APP_DIR.into(),
-        "--chdir".into(),
-        INNER_APP_DIR.into(),
-      ]);
-      if let Some(app_bin) = app_bin {
-        let bin_buf = PathBuf::from(INNER_APP_DIR).join(app_bin);
-        let bin_path = bin_buf
-          .to_str()
-          .with_context(|| format!("Invalid path: {}", bin_buf.to_string_lossy()))?;
-        if launch_config.launch_params.is_windows_binary() {
-          final_args.push("wine".into());
-        }
-        final_args.push(bin_path.into());
-        final_args.extend(app_args.to_owned());
-      } else {
-        // Only app_dir was set (not app_bin), so start with default shell (useful for maintenance).
-        final_args.extend(shell_params);
-      }
+      let app_dir_args = get_app_dir_args(*read_only, app_dir.to_owned());
+      final_args.extend(app_dir_args);
+      final_args.push(app_bin.to_owned());
+      final_args.extend(app_args.clone());
     }
   }
   Ok(final_args)
