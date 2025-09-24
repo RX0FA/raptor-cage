@@ -5,7 +5,7 @@ use crate::{
     mount::{MountConfig, MountMapping},
     sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
     user_mapping::UserMapping,
-    wine::{SyncMode, UpscaleMode},
+    wine::{SyncMode, UpscaleMode, get_wine_user},
   },
 };
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
@@ -31,6 +31,7 @@ pub async fn run(
   verbose: bool,
   upscale_mode: UpscaleMode,
   sync_mode: SyncMode,
+  process_names: Option<Vec<String>>,
   runner_path: Option<PathBuf>,
   prefix_path: Option<PathBuf>,
   app_dir: Option<String>,
@@ -47,17 +48,14 @@ pub async fn run(
     device_access,
     verbose,
   };
-  let launch_params = if let Some(app_dir) = app_dir {
-    let mount_config = MountConfig::from_str(&app_dir).map_err(|e| anyhow::anyhow!("{}", e))?;
-    Some(LaunchParams::configured(
-      !mount_config.writable,
-      mount_config.path.to_string_lossy().to_string(),
-      app_bin,
-      app_args,
-    ))
+  let (app_dir, read_only) = if let Some(dir) = app_dir {
+    let mount_config = MountConfig::from_str(&dir).map_err(|e| anyhow::anyhow!("{}", e))?;
+    (Some(mount_config.path.to_string_lossy().to_string()), !mount_config.writable)
   } else {
-    Some(LaunchParams::Unconfigured)
+    (None, true)
   };
+  let launch_params =
+    LaunchParams::from_options(read_only, app_dir, app_bin, app_args, process_names);
   let launch_config = LaunchConfig::new(
     runner_path,
     prefix_path,
@@ -73,6 +71,13 @@ pub async fn run(
     })
     .collect();
   let mut runtime_env = RuntimeEnv::from_env()?;
+  if let Some(wine_prefix) = &launch_config.prefix_path {
+    // Need to set current user because some games rely on this variable to build the save/config
+    // path. If not set, the behavior depends on the game, common symptoms include saving data to
+    // the root path (e.g., "/My Games"), silently failing to save settings or broken UI.
+    let wine_user = get_wine_user(&wine_prefix, &runtime_env.user_name)?;
+    runtime_env.user_name = wine_user;
+  }
   runtime_env.overrides = Some(env_overrides);
   let mount_mappings = parse_mappings(volumes)?;
   // Inhibit the system so screen does not dim while running a game, inhibition will be

@@ -1,5 +1,6 @@
-use std::fmt;
+use std::path::Path;
 use std::str::FromStr;
+use std::{fmt, fs, io};
 
 const MIN_FSR_STRENGTH: u8 = 0;
 const MAX_FSR_STRENGTH: u8 = 5;
@@ -152,5 +153,69 @@ impl FromStr for SyncMode {
       "esync" => Ok(SyncMode::Esync),
       _ => Err(format!("Invalid sync mode: {}", s)),
     }
+  }
+}
+
+/// Gets the wine user based on the directories available under "$WINEPREFIX/drive_c/users/", this
+/// method looks for the first directory that is not known to be there by default.
+/// Keep in mind that all (most?) wine variants create a user with the same name as the current
+/// user, additionally some variants create extra users like "steamuser" or "wine".
+pub fn get_wine_user(wine_prefix: &Path, fallback_user: &str) -> io::Result<String> {
+  let blacklist = [
+    "Public".to_lowercase(),
+    "Default".to_lowercase(),
+    fallback_user.to_lowercase(),
+  ];
+  let users_path = wine_prefix.join("drive_c").join("users");
+  for entry in fs::read_dir(&users_path)? {
+    let path = entry?.path();
+    if !path.is_dir() {
+      continue;
+    }
+    if let Some(dir_name) = path.file_name().and_then(|name| name.to_str()) {
+      if !blacklist.contains(&dir_name.to_lowercase()) {
+        return Ok(dir_name.to_string());
+      }
+    }
+  }
+  Ok(fallback_user.to_string())
+}
+
+pub fn is_windows_binary<P: AsRef<Path>>(app_bin: P) -> bool {
+  app_bin
+    .as_ref()
+    .extension()
+    .map_or(false, |ext| ext.eq_ignore_ascii_case("exe"))
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_exe_extensions() {
+    assert!(is_windows_binary("program.exe"));
+    assert!(is_windows_binary("program.EXE"));
+    assert!(is_windows_binary("program.ExE"));
+    assert!(is_windows_binary("program.eXe"));
+  }
+
+  #[test]
+  fn test_non_exe_extensions() {
+    assert!(!is_windows_binary("program.txt"));
+    assert!(!is_windows_binary("program.bin"));
+  }
+
+  #[test]
+  fn test_files_with_no_extension() {
+    assert!(!is_windows_binary("program"));
+    assert!(!is_windows_binary(".hiddenfile"));
+    assert!(!is_windows_binary(Path::new("/usr/bin/bash")));
+  }
+
+  #[test]
+  fn test_weird_extensions() {
+    assert!(!is_windows_binary("file.exe.backup"));
+    assert!(is_windows_binary("file.with.many.dots.exe"));
   }
 }

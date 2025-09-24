@@ -3,6 +3,7 @@ mod inhibitor;
 mod invoker;
 mod list;
 mod sandbox;
+mod subprocess;
 
 use clap::Parser;
 use cli::{Cli, Commands};
@@ -21,6 +22,7 @@ async fn main() -> anyhow::Result<()> {
       verbose,
       upscale_mode,
       sync_mode,
+      process_names,
       runner_path,
       prefix_path,
       app_dir,
@@ -37,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
         verbose,
         upscale_mode,
         sync_mode,
+        process_names,
         runner_path,
         prefix_path,
         app_dir,
@@ -46,5 +49,10 @@ async fn main() -> anyhow::Result<()> {
       .await
     }
     Commands::List { category } => list::list(category),
+    Commands::Wait {
+      process_names,
+      program,
+      args,
+    } => subprocess::run(process_names, program, args),
   }
 }

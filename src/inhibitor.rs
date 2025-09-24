@@ -28,10 +28,10 @@ pub async fn inhibit_idle() -> anyhow::Result<InhibitHandle> {
     .call(
       "Inhibit",
       &(
-        "idle",                             // What
-        env!("CARGO_PKG_NAME"),             // Who
-        "Inhibiting while game is running", // Why
-        "block",                            // Mode
+        "idle",                 // What
+        env!("CARGO_PKG_NAME"), // Who
+        "Running Game",         // Why
+        "block",                // Mode
       ),
     )
     .await

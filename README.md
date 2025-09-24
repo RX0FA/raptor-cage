@@ -11,6 +11,12 @@
   <img alt="AUR" src="https://img.shields.io/aur/version/raptor-cage-bin?style=flat-square&label=AUR&labelColor=0567ff&color=696969" />
 </div>
 
+## 🤔 Why Should I Sandbox My Games?
+
+* Developers sometimes make mistakes or forget about security.
+* Even careful developers can be affected by threats in the tools they use (i.e., supply-chain attacks).
+* Many games include tracking or data collection, even at the engine level.
+
 ## ⬇️ Installation
 
 ### ArchLinux
@@ -54,6 +60,12 @@ rcage run -r soda-9.0-1 -p my_prefix  -d ~/games/some_game:rw -v ~/installers:/i
 
 # Mount game path as read-write, mount installer path as read-only, then start "setup.exe".
 rcage run -r soda-9.0-1 -p my_prefix  -d ~/games/some_game:rw -v ~/installers:/installers: -b /installers/setup.exe
+
+# Run Windows game that needs to be launched through another executable, then wait for game to exit.
+rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -b /usr/bin/rcage -- wait -w '*\Game-Win64.exe' wine Launcher.exe
+
+# Same as before but easier to understand and shorter.
+rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -w '*\Game-Win64.exe' -b Launcher.exe
 ```
 
 ### `rcage run` Enum Parameters
@@ -120,7 +132,6 @@ cargo upgrade --dry-run
 
 #### General
 
-* Some games (like HC2, DXM) create a detached sub-process, since we are using `--die-with-parent`, said games will not run when executed directly (with `-b` parameter, executing a shell and launching manually still works); so we need to think in a way to detect child processes and wait for them, or at least add a flag to enable this feature. Disabling `--die-with-parent` is another option, but that would undermine security a bit and leave lingering wine processes all over the place. Maybe add a `--lead-process=NAME_EXE:TIMEOUT` to wait for another process inside the sandbox.
 * Test under pure Wine 64-bit (see https://archlinux.org/news/transition-to-the-new-wow64-wine-and-wine-staging/ and https://gitlab.winehq.org/wine/wine/-/releases/wine-9.0#wow64)
 * Implement bash autocompletion, should be able to autocomplete prefix and runner names based on the ones detected under Bottles. Also consider using [clap_complete](https://crates.io/crates/clap_complete).
 * Add `integrate` sub-command to create integrations e.g., `.desktop` shortcut, entry on Heroic launcher.
