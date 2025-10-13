@@ -1,4 +1,4 @@
-use super::display::Display;
+use super::display::X11Display;
 use super::mount::MountMapping;
 use super::sandbox::{
   DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig,
@@ -7,6 +7,7 @@ use super::sandbox_config::{
   INNER_APP_DIR, INNER_WINE_PREFIX, INNER_WINE_ROOT, current_timestamp_hex, find_nvidia_devices,
 };
 use super::wine::{SyncMode, UpscaleMode};
+use crate::sandbox::sandbox::DisplayProtocol;
 use anyhow::Context;
 use std::env;
 use std::process::{Command, Stdio};
@@ -68,6 +69,62 @@ fn get_app_dir_args(read_only: bool, app_dir: String) -> Vec<String> {
   ]
 }
 
+fn get_display_args(
+  display_protocol: &DisplayProtocol,
+  runtime_env: &RuntimeEnv,
+) -> anyhow::Result<Vec<String>> {
+  match display_protocol {
+    DisplayProtocol::X11 => {
+      let x11_display = runtime_env
+        .x11_display
+        .clone()
+        .context("Couldn't get X11 display")?;
+      let xauthority_file = runtime_env
+        .xauthority_file
+        .clone()
+        .context("Couldn't get Xauthority value")?;
+      let display = X11Display::from_str(&x11_display)?;
+      let x11_socket = display.get_socket_path();
+      // Mount X11 socket to allow running GUI apps. Using the same X11 display number as the host
+      // because using a different number will not work despite being the first recommendation in the
+      // ArchWiki: https://wiki.archlinux.org/title/Bubblewrap#Using_X11.
+      Ok(vec![
+        "--setenv".into(),
+        "DISPLAY".into(),
+        x11_display,
+        "--setenv".into(),
+        "XAUTHORITY".into(),
+        xauthority_file.clone(),
+        "--bind".into(),
+        x11_socket.clone(),
+        x11_socket,
+        "--ro-bind".into(),
+        xauthority_file.clone(),
+        xauthority_file,
+      ])
+    }
+    DisplayProtocol::Wayland => {
+      let wayland_display = runtime_env
+        .wayland_display
+        .clone()
+        .context("Couldn't get Wayland display")?;
+      let wayland_socket = format!("{}/{}", runtime_env.xdg_runtime_dir, wayland_display);
+      // The DISPLAY env variable must not be set to tell wine to use Wayland.
+      // https://gitlab.winehq.org/wine/wine/-/releases/wine-10.0#wayland-driver.
+      // Also, the XDG_RUNTIME_DIR env variable (set previously) is required because the Wayland
+      // socket is located under this path.
+      Ok(vec![
+        "--setenv".into(),
+        "WAYLAND_DISPLAY".into(),
+        wayland_display,
+        "--bind".into(),
+        wayland_socket.clone(),
+        wayland_socket,
+      ])
+    }
+  }
+}
+
 fn build_args(
   sandbox_config: &SandboxConfig,
   launch_config: &LaunchConfig,
@@ -78,6 +135,9 @@ fn build_args(
   let mut args = vec![
     // Kill processes in sandbox when bwrap dies.
     "--die-with-parent",
+    // Allow adjusting process niceness, can be checked with "capsh --print".
+    "--cap-add",
+    "CAP_SYS_NICE",
   ];
   // With user isolation the uid and gid will change inside the container, outside the container
   // they will still be the same as the invoking user.
@@ -94,7 +154,7 @@ fn build_args(
     (uid, gid) = sandbox_config.user_mapping.get_uid_gid_string();
     args.extend(["--unshare-user", "--uid", &uid, "--gid", &gid]);
   }
-  // Use a new UTS space and a hostname based on the current timestamp.
+  // Use a new UTS space, and a hostname based on the current timestamp.
   let timestamp = current_timestamp_hex();
   args.extend(["--unshare-uts", "--hostname", &timestamp]);
   // Share devices, if NVIDIA devices are missing, weird/misleading gstreamer errors may appear when
@@ -119,25 +179,51 @@ fn build_args(
     "/usr/lib",
     "/lib",
   ]);
+  // While --dir itself doesn't inherently leak data from the host, it provides less protection
+  // because it allows the container to manage files on a persistent basis (even if those files are
+  // contained within the sandbox), i.e., it has greater attack surface. In contrast, --tmpfs
+  // provides no chance of interaction with the host filesystem.
+  args.extend([
+    "--tmpfs",
+    "/var",
+    "--proc",
+    "proc",
+    "--tmpfs",
+    &runtime_env.home_dir,
+  ]);
   // Need to bind /run because it allows D-Bus to work, also some apps that directly or indirectly
   // rely on libudev may fail to access devices like gamepads if /run/udev/data is not accessible.
   // Binding /run works but it exposes more than we need, so only bind D-Bus related paths,
   // i.e. sandboxed apps shouldn't be able to run "DOCKER_HOST=unix:///run/docker.sock docker ps",
   // the aforementioned command works even if --ro-bind was used.
   // Access to /sys is needed for apps to be able to retrieve kernel and hardware information.
+  let pulse_cookie = format!("{}/.config/pulse/cookie", runtime_env.home_dir);
+  let pulse_socket = format!("{}/pulse/native", runtime_env.xdg_runtime_dir);
+  let pipewire_socket = format!("{}/pipewire-0", runtime_env.xdg_runtime_dir);
   args.extend([
     "--ro-bind",
     "/run/dbus",
     "/run/dbus",
+    // Mount an empty writable directory as the XDG_RUNTIME_DIR because if "/run/user/USER_ID" is
+    // mounted, it would expose sockets like vscode, ssh, kwallet; also needs to be writable because
+    // some programs like gamescope may create lock files under this path.
     // TODO: need more testing to see if mounting /run/udev/data makes a meaningful difference, this
     // requires to unset SDL_JOYSTICK_DISABLE_UDEV, a game that has gamepad issues and said gamepad
     // issues not to be related to Steam Input. The expected result is to have a previously
     // non-working gamepad working and to have gamepad hotplugging unaffected.
     // TODO: investigate "0090:err:hid:udev_bus_init UDEV monitor creation failed" errors. Happens
     // with wine-ge-proton8-26.
-    "--ro-bind",
-    "/run/user",
-    "/run/user",
+    "--tmpfs",
+    &runtime_env.xdg_runtime_dir,
+    "--ro-bind-try",
+    &pulse_cookie,
+    &pulse_cookie,
+    "--ro-bind-try",
+    &pulse_socket,
+    &pulse_socket,
+    "--ro-bind-try",
+    &pipewire_socket,
+    &pipewire_socket,
     "--ro-bind",
     "/sys",
     "/sys",
@@ -183,19 +269,6 @@ fn build_args(
       args.push("--unshare-net");
     }
   }
-  // While --dir itself doesn't inherently leak data from the host, it provides less protection
-  // because it allows the container to manage files on a persistent basis (even if those files are
-  // contained within the sandbox), in other words, it has greater attack surface in case a
-  // vulnerability in Bubblewrap is found. In contrast, --tmpfs ensures a clean and isolated
-  // environment with no chance of interaction with the host filesystem.
-  args.extend([
-    "--tmpfs",
-    "/var",
-    "--proc",
-    "proc",
-    "--tmpfs",
-    &runtime_env.home_dir,
-  ]);
   // Mount the directory that contains the Wine binaries and libraries (a.k.a. runner), the Wine
   // version to be mounted must be statically compiled in order to not rely on any host library
   // i.e. the runners downloaded by Bottles are statically compiled.
@@ -204,7 +277,7 @@ fn build_args(
       "--tmpfs",
       "/opt",
       "--ro-bind",
-      runner_path.to_str().context("bad runner path")?,
+      runner_path.to_str().context("Bad runner path")?,
       INNER_WINE_ROOT,
     ]);
   }
@@ -213,27 +286,13 @@ fn build_args(
   if let Some(prefix_path) = &launch_config.prefix_path {
     args.extend([
       "--bind",
-      prefix_path.to_str().context("bad prefix path")?,
+      prefix_path.to_str().context("Bad prefix path")?,
       INNER_WINE_PREFIX,
     ]);
   }
-  // Mount X11 socket to allow running GUI apps. Using the same X11 display number as the host
-  // because using a different number will not work despite being the first recommendation in the
-  // ArchWiki: https://wiki.archlinux.org/title/Bubblewrap#Using_X11.
-  let display = Display::from_str(&runtime_env.display_address)?;
-  let x11_socket = display.get_socket_path();
-  args.extend([
-    "--tmpfs",
-    "/tmp",
-    "--tmpfs",
-    "/dev/shm",
-    "--bind",
-    &x11_socket,
-    &x11_socket,
-    "--ro-bind",
-    &runtime_env.xauthority_file,
-    &runtime_env.xauthority_file,
-  ]);
+  // Temporary directories, some programs may fail to start or crash if these
+  // paths are not available e.g., X11 apps, Electron apps, wine with Fsync/Esync.
+  args.extend(["--tmpfs", "/tmp", "--tmpfs", "/dev/shm"]);
   // Clear env and set minimal required variables, we need to make sure that all needed variables
   // are being passed otherwise games may crash or have no sound.
   // The USER and LANG variables are needed for some games in order to be able to save settings and
@@ -250,17 +309,11 @@ fn build_args(
     "LANG",
     &runtime_env.lang,
     "--setenv",
-    "XAUTHORITY",
-    &runtime_env.xauthority_file,
-    "--setenv",
     "DBUS_SESSION_BUS_ADDRESS",
     &runtime_env.dbus_session_bus_address,
     "--setenv",
     "XDG_RUNTIME_DIR",
     &runtime_env.xdg_runtime_dir,
-    "--setenv",
-    "DISPLAY",
-    &runtime_env.display_address,
     "--setenv",
     "WINEPREFIX",
     INNER_WINE_PREFIX,
@@ -299,6 +352,8 @@ fn build_args(
     "VKD3D_SHADER_CACHE_PATH",
     &vkd3d_cache_path,
   ]);
+  let display_args = get_display_args(&sandbox_config.display_protocol, runtime_env)?;
+  args.extend(display_args.iter().map(|a| a.as_str()));
   // Configure upscale mode.
   let fsr_mode: String;
   let fsr_strength: String;

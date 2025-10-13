@@ -5,7 +5,9 @@ use std::str::FromStr;
 // Minimum id to use when generating a random UID/GID; usually system accounts use from 0 to 999,
 // normal users start from 1000 and so on, and other applications like Docker use ranges up to
 // 296608 (231072 + 65536), so a safe bet is to use values >= 300_000.
-const MIN_ID: u32 = 300_000;
+const MIN_RANDOM_ID: u32 = 300_000;
+// Minimum UID/GID allowed by the Linux kernel.
+const MIN_ID: u32 = 0;
 // On many Linux systems, even though the maximum UID/GID is an u32, we are only allowed to use ids
 // up to 2147483647 (the max value of i32), otherwise namespace creation may fail.
 // This cast simply performs a conversion without checking for overflow, and for this particular
@@ -26,11 +28,9 @@ impl fmt::Display for UserMappingError {
     match self {
       UserMappingError::InvalidFormat(s) => write!(f, "Expected UID:GID format, but got: {}", s),
       UserMappingError::InvalidId(s) => write!(f, "Input is not a valid ID: {}", s),
-      UserMappingError::OutOfRangeId(uid) => write!(
-        f,
-        "Value must be between {} and {}, but got {}",
-        MIN_ID, MAX_ID, uid
-      ),
+      UserMappingError::OutOfRangeId(id) => {
+        write!(f, "Value must be between {} and {}, but got {}", MIN_ID, MAX_ID, id)
+      }
     }
   }
 }
@@ -61,8 +61,8 @@ impl UserMapping {
     match self {
       UserMapping::Random => {
         let mut rng = rand::thread_rng();
-        let random_uid = rng.gen_range(MIN_ID..=MAX_ID);
-        let random_gid = rng.gen_range(MIN_ID..=MAX_ID);
+        let random_uid = rng.gen_range(MIN_RANDOM_ID..=MAX_ID);
+        let random_gid = rng.gen_range(MIN_RANDOM_ID..=MAX_ID);
         (random_uid, random_gid)
       }
       UserMapping::Custom(uid, gid) => (*uid, *gid),
@@ -98,8 +98,8 @@ mod tests {
   fn test_random_user_mapping() {
     let mapping = UserMapping::Random;
     let (uid, gid) = mapping.get_uid_gid();
-    assert!(uid >= MIN_ID && uid <= MAX_ID);
-    assert!(gid >= MIN_ID && gid <= MAX_ID);
+    assert!(uid >= MIN_RANDOM_ID && uid <= MAX_ID);
+    assert!(gid >= MIN_RANDOM_ID && gid <= MAX_ID);
   }
 
   #[test]

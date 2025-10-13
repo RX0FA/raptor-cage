@@ -8,7 +8,7 @@ source_x86_64=("https://github.com/RX0FA/raptor-cage/releases/download/{{TAG_NAM
 arch=('x86_64')
 license=('CIL-1.0')
 depends=('bubblewrap' 'steam-native-runtime')
-optdepends=('mangohud: vulkan overlay')
+optdepends=('mangohud: vulkan overlay' 'gamescope: spoof resolutions and limit framerates')
 sha256sums_x86_64=('{{SHA256SUM}}')
 
 package() {

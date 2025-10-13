@@ -89,16 +89,14 @@ pub fn run(
   program: String,
   args: Option<Vec<String>>,
 ) -> anyhow::Result<()> {
-  let mut cmd = Command::new(&program)
+  Command::new(&program)
     .args(args.unwrap_or_default())
     .stdout(Stdio::inherit())
     .stderr(Stdio::inherit())
     .spawn()
     .map_err(|e| anyhow::anyhow!("Could not spawn {}: {}", &program, e))?;
-  // Only print non-zero exit codes (no need to terminate early).
-  if let Err(error) = cmd.wait() {
-    println!("{}", error);
-  }
+  // Unlike bwrap::run, there is no need to use cmd.wait() because we want to
+  // wait for other processes not the one we just executed.
   println!(
     "Waiting for the following process(es) to terminate:\n{}",
     process_names

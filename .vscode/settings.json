@@ -28,6 +28,7 @@
     "hotplugging",
     "latencyflex",
     "Ntsync",
+    "pipewire",
     "pulseaudio",
     "reqwest",
     "sandboxed",
