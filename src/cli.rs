@@ -1,7 +1,7 @@
 use crate::{
   list::Category,
   sandbox::{
-    sandbox::{DeviceAccess, NetworkMode},
+    sandbox::{DeviceAccess, DisplayProtocol, NetworkMode},
     user_mapping::UserMapping,
     wine::{SyncMode, UpscaleMode},
   },
@@ -25,8 +25,23 @@ pub enum Commands {
     #[arg(long, default_value = "false")]
     no_namespace_isolation: bool,
     /// Use specific user and group id.
-    #[arg(long, value_name = "UID:GID", default_value = "random", value_parser)]
+    #[arg(
+      short = 'u',
+      long,
+      value_name = "UID:GID",
+      default_value = "random",
+      value_parser
+    )]
     user_mapping: UserMapping,
+    /// Display protocol.
+    #[arg(
+      short = 'o',
+      long,
+      value_name = "PRT",
+      default_value = "x11",
+      value_parser
+    )]
+    display_protocol: DisplayProtocol,
     /// Configure network access.
     #[arg(long, value_name = "MODE", default_value = "no_access", value_parser)]
     network_mode: NetworkMode,
