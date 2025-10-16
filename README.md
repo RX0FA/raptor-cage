@@ -13,7 +13,7 @@
 
 ## 🤔 Why Should I Sandbox My Games?
 
-* Developers sometimes make mistakes or forget about security.
+* Game developers sometimes make mistakes or forget about security.
 * Even careful developers can be affected by threats in the tools they use (i.e., supply-chain attacks).
 * Many games include tracking or data collection, even at the engine level.
 
@@ -82,6 +82,8 @@ rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -w '*\Game-Win64.exe' 
   * `dlss`: enable NVIDIA DLSS, **support depends on the wine runner**, raptor-cage only configures the necessary flags.
   * `fsr`: enable FSR, it requires additional options separated by `:`, the command value should look like `fsr:mode:strength`. Mode can be one of `none`, `quality`, `balanced`, `performance` or `ultra`; strength is a value that goes from 0 to 5; (example command: `--upscale-mode=fsr:balanced:1`). **Support depends on the wine runner** being used.
 * --sync-mode: one of `none`, `fsync` or `esync`. The default value depends on the runner being used.
+* --display-protocol: one of `x11`, `wayland`. The default value is `x11`.
+* --user-mapping: can be any valid UID:GID, or one of `random` or `none`. The default value is `random`.
 
 ## 📌 Frequently Asked Questions
 
@@ -111,7 +113,15 @@ rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -w '*\Game-Win64.exe' 
 
 > Recommended read https://wiki.archlinux.org/title/Steam/Troubleshooting#Steam:_An_X_Error_occurred
 
-* **failed to load driver: nouveau:** make sure to have 32-bit libraries installed i.e., `lib32-nvidia-utils`
+**Failed to load driver: nouveau**
+
+Make sure to have 32-bit libraries installed i.e., `lib32-nvidia-utils`.
+
+**Getting "required file not found" when running a command that requires wine**
+
+Most likely some 32-bit libraries are not present on the system, these libraries are usually included in the Bottles flatpak, however they need to be installed outside flatpak if running manually via bubblewrap, on Arch you can install `wine` (for the sake of pulling all required 32-bit libraries as dependencies) or install `steam-native-runtime` which is basically what we need.
+
+Also, this may happen because "wine" is a 32-bit binary that executes "wine64" on 64-bit systems, this is not a bubblewrap issue, it's just that many applications (even 64-bit ones) rely or depend on other smaller 32-bit applications. For example, the installer for 64-bit Notepad++ is a 32-bit executable.
 
 ## ⚙️ Development
 
@@ -135,7 +145,7 @@ cargo upgrade --dry-run
 * Test under pure Wine 64-bit (see https://archlinux.org/news/transition-to-the-new-wow64-wine-and-wine-staging/ and https://gitlab.winehq.org/wine/wine/-/releases/wine-9.0#wow64)
 * Implement bash autocompletion, should be able to autocomplete prefix and runner names based on the ones detected under Bottles. Also consider using [clap_complete](https://crates.io/crates/clap_complete).
 * Add `integrate` sub-command to create integrations e.g., `.desktop` shortcut, entry on Heroic launcher.
-* Native wayland support, see https://www.phoronix.com/news/Wine-9.22-Released and https://wiki.archlinux.org/title/Wine#Wayland. Also consider bringing back `--unshare-ipc` if using Wayland prevents the issue described in bwrap.rs#90.
+* Consider bringing back `--unshare-ipc`, if using Wayland prevents the issue described in bwrap.rs#91.
 * Add `kill` sub-command to terminate all processes in a sandbox, need to connect to existing bwrap container.
 * When using the `integrate` sub-command to create a `.desktop` shortcut, extract executable icon and set it respectively. It can be done with a small windows executable calling a win32 API call or natively on Linux by using `wrestool`.
 * Add NTSYNC support, see also https://www.phoronix.com/news/Linux-6.14-Char-Misc-NTSYNC.

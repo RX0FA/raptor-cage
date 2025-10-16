@@ -3,7 +3,10 @@ use crate::{
   sandbox::{
     bwrap,
     mount::{MountConfig, MountMapping},
-    sandbox::{DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig},
+    sandbox::{
+      DeviceAccess, DisplayProtocol, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv,
+      SandboxConfig,
+    },
     user_mapping::UserMapping,
     wine::{SyncMode, UpscaleMode, get_wine_user},
   },
@@ -26,6 +29,7 @@ pub async fn run(
   volumes: &[String],
   no_namespace_isolation: bool,
   user_mapping: UserMapping,
+  display_protocol: DisplayProtocol,
   network_mode: NetworkMode,
   device_access: DeviceAccess,
   verbose: bool,
@@ -44,6 +48,7 @@ pub async fn run(
   let sandbox_config = SandboxConfig {
     namespace_isolation: !no_namespace_isolation,
     user_mapping,
+    display_protocol,
     network_mode,
     device_access,
     verbose,

@@ -7,6 +7,24 @@ use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+/// Defines the necessary environment variables and mount paths for each driver.
+#[derive(Debug, Clone)]
+pub enum DisplayProtocol {
+  X11,
+  Wayland,
+}
+
+impl FromStr for DisplayProtocol {
+  type Err = String;
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s.to_lowercase().as_str() {
+      "x11" | "x" => Ok(DisplayProtocol::X11),
+      "wayland" | "w" => Ok(DisplayProtocol::Wayland),
+      _ => Err(format!("Invalid display protocol: {}", s)),
+    }
+  }
+}
+
 /// Represents network configuration options.
 #[derive(Debug, Clone)]
 pub enum NetworkMode {
@@ -51,26 +69,26 @@ impl FromStr for DeviceAccess {
 }
 
 /// Retrieves an env variable and maps the error if not found, the difference between this method
-/// and using directly env::var is that this method mentions the variable name that was not found.
+/// and using directly env::var is that this method mentions the variable name in the error.
 fn get_env_var(name: &str) -> anyhow::Result<String> {
   env::var(name).with_context(|| format!("Failed to read environment variable: {}", name))
 }
 
-// TODO: as of 2024-09 Wine Wayland is not finished, add the necessary args when it gets shipped
-// with official releases. Wayland seems to also use a socket e.g. "/run/user/<uid>/wayland-0".
 pub struct RuntimeEnv {
   pub home_dir: String,
   pub user_name: String,
   pub lang: String,
   pub dbus_session_bus_address: String,
+  /// Path that contains socket and lock files. This includes the Wayland socket.
   pub xdg_runtime_dir: String,
   /// Represents the unmodified value of the PATH variable.
   pub original_path: String,
-  /// X11 display address, can look like `:0`, `:1` or `localhost:0.0`. This is required even if
-  /// running on Wayland.
-  pub display_address: String,
+  /// X11 display address, can look like `:0`, `:1` or `localhost:0.0`.
+  pub x11_display: Option<String>,
   /// Needed on X11 sessions, and by Gamescope.
-  pub xauthority_file: String,
+  pub xauthority_file: Option<String>,
+  /// Wayland display socket name, looks like `wayland-0`.
+  pub wayland_display: Option<String>,
   /// Additional env variables set (e.g. set by the user or Bottles).
   pub overrides: Option<HashMap<String, String>>,
 }
@@ -83,8 +101,9 @@ impl RuntimeEnv {
     let dbus_session_bus_address = get_env_var("DBUS_SESSION_BUS_ADDRESS")?;
     let xdg_runtime_dir = get_env_var("XDG_RUNTIME_DIR")?;
     let original_path = get_env_var("PATH")?;
-    let display_address = get_env_var("DISPLAY")?;
-    let xauthority_file = get_env_var("XAUTHORITY")?;
+    let x11_display = env::var("DISPLAY").ok();
+    let xauthority_file = env::var("XAUTHORITY").ok();
+    let wayland_display = env::var("WAYLAND_DISPLAY").ok();
     Ok(Self {
       home_dir,
       user_name,
@@ -92,8 +111,9 @@ impl RuntimeEnv {
       dbus_session_bus_address,
       xdg_runtime_dir,
       original_path,
-      display_address,
+      x11_display,
       xauthority_file,
+      wayland_display,
       overrides: None,
     })
   }
@@ -104,6 +124,8 @@ pub struct SandboxConfig {
   pub namespace_isolation: bool,
   /// Controls the user and group id inside the sandbox.
   pub user_mapping: UserMapping,
+  /// Controls what environment variables will be set and what sockets will be mounted.
+  pub display_protocol: DisplayProtocol,
   /// Controls network access for sandboxed programs (e.g. internet access), the bwrap default is to
   /// allow network connections, our default is to deny connections by using a separate network
   /// namespace.
@@ -119,6 +141,7 @@ impl Default for SandboxConfig {
     SandboxConfig {
       namespace_isolation: true,
       user_mapping: UserMapping::Random,
+      display_protocol: DisplayProtocol::X11,
       network_mode: NetworkMode::NoAccess,
       device_access: DeviceAccess::Minimal,
       verbose: false,
