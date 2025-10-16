@@ -83,6 +83,7 @@ rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -w '*\Game-Win64.exe' 
   * `fsr`: enable FSR, it requires additional options separated by `:`, the command value should look like `fsr:mode:strength`. Mode can be one of `none`, `quality`, `balanced`, `performance` or `ultra`; strength is a value that goes from 0 to 5; (example command: `--upscale-mode=fsr:balanced:1`). **Support depends on the wine runner** being used.
 * --sync-mode: one of `none`, `fsync` or `esync`. The default value depends on the runner being used.
 * --display-protocol: one of `x11`, `wayland`. The default value is `x11`.
+* --user-mapping: can be any valid UID:GID, or one of `random` or `none`. The default value is `random`.
 
 ## 📌 Frequently Asked Questions
 

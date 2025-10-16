@@ -1,5 +1,6 @@
 use super::display::X11Display;
 use super::mount::MountMapping;
+use super::sandbox::DisplayProtocol;
 use super::sandbox::{
   DeviceAccess, LaunchConfig, LaunchParams, NetworkMode, RuntimeEnv, SandboxConfig,
 };
@@ -7,7 +8,6 @@ use super::sandbox_config::{
   INNER_APP_DIR, INNER_WINE_PREFIX, INNER_WINE_ROOT, current_timestamp_hex, find_nvidia_devices,
 };
 use super::wine::{SyncMode, UpscaleMode};
-use crate::sandbox::sandbox::DisplayProtocol;
 use anyhow::Context;
 use std::env;
 use std::process::{Command, Stdio};
@@ -78,11 +78,11 @@ fn get_display_args(
       let x11_display = runtime_env
         .x11_display
         .clone()
-        .context("Couldn't get X11 display")?;
+        .context("Unable to retrieve X11 display (DISPLAY environment variable)")?;
       let xauthority_file = runtime_env
         .xauthority_file
         .clone()
-        .context("Couldn't get Xauthority value")?;
+        .context("Unable to retrieve Xauthority file (XAUTHORITY environment variable)")?;
       let display = X11Display::from_str(&x11_display)?;
       let x11_socket = display.get_socket_path();
       // Mount X11 socket to allow running GUI apps. Using the same X11 display number as the host
@@ -107,7 +107,7 @@ fn get_display_args(
       let wayland_display = runtime_env
         .wayland_display
         .clone()
-        .context("Couldn't get Wayland display")?;
+        .context("Unable to retrieve Wayland display (WAYLAND_DISPLAY environment variable)")?;
       let wayland_socket = format!("{}/{}", runtime_env.xdg_runtime_dir, wayland_display);
       // The DISPLAY env variable must not be set to tell wine to use Wayland.
       // https://gitlab.winehq.org/wine/wine/-/releases/wine-10.0#wayland-driver.
@@ -139,10 +139,14 @@ fn build_args(
     "--cap-add",
     "CAP_SYS_NICE",
   ];
-  // With user isolation the uid and gid will change inside the container, outside the container
-  // they will still be the same as the invoking user.
   let uid: String;
   let gid: String;
+  // Re-assign uid and gid if needed, do not confuse with --unshare-user, the later is to unshare
+  // the current user namespace.
+  if let Some(uid_gid) = sandbox_config.user_mapping.get_uid_gid_string() {
+    (uid, gid) = uid_gid;
+    args.extend(["--uid", &uid, "--gid", &gid]);
+  }
   if sandbox_config.namespace_isolation {
     // Need to keep IPC namespace (i.e. no --unshare-ipc) because it breaks some GUI applications
     // i.e. when quickly moving the mouse cursor over the WinRAR menu bar, the application will
@@ -150,9 +154,7 @@ fn build_args(
     // operation)" error.
     // TODO: consider bringing back the --unshare-ipc parameter, it seems limited to X11, see also
     // flatpak docs about the IPC issue.
-    args.extend(["--unshare-pid", "--unshare-cgroup"]);
-    (uid, gid) = sandbox_config.user_mapping.get_uid_gid_string();
-    args.extend(["--unshare-user", "--uid", &uid, "--gid", &gid]);
+    args.extend(["--unshare-pid", "--unshare-cgroup", "--unshare-user"]);
   }
   // Use a new UTS space, and a hostname based on the current timestamp.
   let timestamp = current_timestamp_hex();
@@ -190,6 +192,12 @@ fn build_args(
     "proc",
     "--tmpfs",
     &runtime_env.home_dir,
+    // Some programs may fail to start or crash if /tmp or /dev/shm are not available
+    // e.g., X11 apps, Electron apps, wine with Fsync/Esync.
+    "--tmpfs",
+    "/tmp",
+    "--tmpfs",
+    "/dev/shm",
   ]);
   // Need to bind /run because it allows D-Bus to work, also some apps that directly or indirectly
   // rely on libudev may fail to access devices like gamepads if /run/udev/data is not accessible.
@@ -290,9 +298,6 @@ fn build_args(
       INNER_WINE_PREFIX,
     ]);
   }
-  // Temporary directories, some programs may fail to start or crash if these
-  // paths are not available e.g., X11 apps, Electron apps, wine with Fsync/Esync.
-  args.extend(["--tmpfs", "/tmp", "--tmpfs", "/dev/shm"]);
   // Clear env and set minimal required variables, we need to make sure that all needed variables
   // are being passed otherwise games may crash or have no sound.
   // The USER and LANG variables are needed for some games in order to be able to save settings and

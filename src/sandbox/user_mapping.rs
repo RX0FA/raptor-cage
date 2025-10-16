@@ -50,6 +50,8 @@ fn parse_id(id: &str) -> Result<u32, UserMappingError> {
 /// Represents a user mapping configuration.
 #[derive(Debug, Clone, Copy)]
 pub enum UserMapping {
+  /// Do not map user and group ids.
+  None,
   /// Use random user and group ids.
   Random,
   /// Explicitly specify user and group ids.
@@ -57,26 +59,32 @@ pub enum UserMapping {
 }
 
 impl UserMapping {
-  pub fn get_uid_gid(&self) -> (u32, u32) {
+  pub fn get_uid_gid(&self) -> Option<(u32, u32)> {
     match self {
+      UserMapping::None => None,
       UserMapping::Random => {
         let mut rng = rand::thread_rng();
         let random_uid = rng.gen_range(MIN_RANDOM_ID..=MAX_ID);
         let random_gid = rng.gen_range(MIN_RANDOM_ID..=MAX_ID);
-        (random_uid, random_gid)
+        Some((random_uid, random_gid))
       }
-      UserMapping::Custom(uid, gid) => (*uid, *gid),
+      UserMapping::Custom(uid, gid) => Some((*uid, *gid)),
     }
   }
-  pub fn get_uid_gid_string(&self) -> (String, String) {
-    let (uid, gid) = self.get_uid_gid();
-    (uid.to_string(), gid.to_string())
+  pub fn get_uid_gid_string(&self) -> Option<(String, String)> {
+    let Some((uid, gid)) = self.get_uid_gid() else {
+      return None;
+    };
+    Some((uid.to_string(), gid.to_string()))
   }
 }
 
 impl FromStr for UserMapping {
   type Err = UserMappingError;
   fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if s.eq_ignore_ascii_case("none") {
+      return Ok(UserMapping::None);
+    }
     if s.eq_ignore_ascii_case("random") {
       return Ok(UserMapping::Random);
     }
@@ -97,7 +105,9 @@ mod tests {
   #[test]
   fn test_random_user_mapping() {
     let mapping = UserMapping::Random;
-    let (uid, gid) = mapping.get_uid_gid();
+    let result = mapping.get_uid_gid();
+    assert!(result.is_some());
+    let (uid, gid) = result.unwrap();
     assert!(uid >= MIN_RANDOM_ID && uid <= MAX_ID);
     assert!(gid >= MIN_RANDOM_ID && gid <= MAX_ID);
   }
@@ -105,20 +115,28 @@ mod tests {
   #[test]
   fn test_custom_user_mapping() {
     let mapping = UserMapping::Custom(500_000, 600_000);
-    let (uid, gid) = mapping.get_uid_gid();
+    let result = mapping.get_uid_gid();
+    assert!(result.is_some());
+    let (uid, gid) = result.unwrap();
     assert_eq!(uid, 500_000);
     assert_eq!(gid, 600_000);
   }
 
   #[test]
+  fn test_user_mapping_from_str_none() {
+    let mapping = UserMapping::from_str("none").unwrap();
+    assert!(matches!(mapping, UserMapping::None));
+  }
+
+  #[test]
   fn test_user_mapping_from_str_random() {
-    let mapping: UserMapping = "random".parse().unwrap();
+    let mapping = UserMapping::from_str("random").unwrap();
     assert!(matches!(mapping, UserMapping::Random));
   }
 
   #[test]
   fn test_user_mapping_from_str_custom() {
-    let mapping: UserMapping = "500000:600000".parse().unwrap();
+    let mapping = UserMapping::from_str("500000:600000").unwrap();
     if let UserMapping::Custom(uid, gid) = mapping {
       assert_eq!(uid, 500_000);
       assert_eq!(gid, 600_000);
