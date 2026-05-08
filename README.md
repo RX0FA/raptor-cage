@@ -97,17 +97,16 @@ rcage run -r soda-9.0-1 -p my_prefix -d ~/games/some_game -w '*\Game-Win64.exe' 
   Bubblewrap (bwrap) is used under the hood by raptor-cage, you could use bwrap directly too, however it would require careful configuration of dozens of parameters.
 * Do I need Steam in order to use raptor-cage?  
   Not at all, raptor-cage objective is to allow the user to run games in a sandbox without relying on closed-source or corporate launchers/tools.
-* You say that Steam is not required, but I still need to install `steam-native-runtime` on ArchLinux  
-  The `steam-native-runtime` package on ArchLinux includes a lot of dependencies that Wine/Proton require to run games, it's used as a convenience shortcut to bring the necessary dependencies into your system, you can avoid installing `steam-native-runtime` by using the raptor-cage binary (non-package version) and install the dependencies yourself.
+* You say that Steam is not required, but I still need to install `steam` on ArchLinux  
+  The `steam` package on ArchLinux includes a lot of dependencies that Wine/Proton require to run games, it's used as a convenience shortcut to bring the necessary dependencies into your system, you can avoid installing `steam` by using the raptor-cage binary (non-package version) and install the dependencies yourself.
 * Why do I have Steam icons on ArchLinux?  
-  `steam-native-runtime` will be installed as a dependency of raptor-cage, if you want to avoid such icons, ignore the respective files on `pacman.conf`
+  `steam` will be installed as a dependency of raptor-cage, if you want to avoid such icons, ignore the respective files on `pacman.conf`
   ```conf
   # /etc/pacman.conf
-  NoExtract   = usr/bin/steam usr/bin/steam-runtime usr/bin/steamdeps usr/share/applications/steam.desktop
-  NoExtract   = usr/bin/steam-native usr/share/applications/steam-native.desktop
+  NoExtract = usr/bin/steam usr/bin/steamdeps usr/lib/steam/steam.desktop usr/share/applications/steam.desktop
   ```
-* Do I still need `steam-native-runtime` on Manjaro?  
-  Yes, even though Manjaro includes more dependencies than regular ArchLinux (which helps in many cases), if `steam-native-runtime` is not installed, there will still be some games that will just freeze with no explanation, or sometimes Wine/Proton will report that a dependency (like `libvulkan1.so`) is missing despite that not being the case.
+* Do I still need `steam` on Manjaro?  
+  Yes, even though Manjaro includes more dependencies than regular ArchLinux (which helps in many cases), if `steam` is not installed, there will still be some games that will just freeze with no explanation, or sometimes Wine/Proton will report that a dependency (like `libvulkan1.so`) is missing despite that not being the case.
 
 ## 🔥 Troubleshooting
 
@@ -119,7 +118,7 @@ Make sure to have 32-bit libraries installed i.e., `lib32-nvidia-utils`.
 
 **Getting "required file not found" when running a command that requires wine**
 
-Most likely some 32-bit libraries are not present on the system, these libraries are usually included in the Bottles flatpak, however they need to be installed outside flatpak if running manually via bubblewrap, on Arch you can install `wine` (for the sake of pulling all required 32-bit libraries as dependencies) or install `steam-native-runtime` which is basically what we need.
+Most likely some 32-bit libraries are not present on the system, these libraries are usually included in the Bottles flatpak, however they need to be installed outside flatpak if running manually via bubblewrap, on Arch you can install `wine` (for the sake of pulling all required 32-bit libraries as dependencies) or install `steam` which is basically what we need.
 
 Also, this may happen because "wine" is a 32-bit binary that executes "wine64" on 64-bit systems, this is not a bubblewrap issue, it's just that many applications (even 64-bit ones) rely or depend on other smaller 32-bit applications. For example, the installer for 64-bit Notepad++ is a 32-bit executable.
 
@@ -178,5 +177,5 @@ cargo upgrade --dry-run
 
 * Simple GUI delivered as Flatpak that builds the needed commands based on the selected options, and creates `.desktop` shortcuts.
 * Investigate a way to use `--new-session` while allowing the user to read the output, without relying on seccomp, probably an easy fix could be to create an HTTP server where the output can be seen.
-* Fork `steam-native-runtime` and remove Steam related stuff (i.e., keep dependencies only) and implement GitHub Actions for update checking and deployment to the AUR. This would prevent the `pacman.conf` workaround described in the FAQ.
+* Fork `steam` and remove Steam related stuff (i.e., keep dependencies only) and implement GitHub Actions for update checking and deployment to the AUR. This would prevent the `pacman.conf` workaround described in the FAQ. Note: previously `steam-native-runtime` was used, however it was removed from Arch official packages on early 2026, unlike `steam`, this package included just the needed dependencies, `steam` includes some extra stuff not really needed like `steam-devices` and `zenity`.
 * Create overlay filesystem on top of game directory in order to allow writing data without affecting the underlying files (could be used instead of `:rw`).
